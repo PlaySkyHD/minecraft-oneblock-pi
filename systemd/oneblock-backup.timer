@@ -1,0 +1,10 @@
+[Unit]
+Description=Tägliches OneBlock-Backup um 04:00
+
+[Timer]
+OnCalendar=*-*-* 04:00
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

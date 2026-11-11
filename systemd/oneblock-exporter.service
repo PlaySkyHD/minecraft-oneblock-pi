@@ -1,0 +1,21 @@
+[Unit]
+Description=Prometheus-Exporter für den OneBlock-Server (Port 9225)
+After=network-online.target oneblock.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nicma
+Group=nicma
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 -I /home/nicma/servers/tools/exporter/oneblock_exporter.py --port 9225
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,29 @@
+[Unit]
+Description=Minecraft OneBlock + Create Server (NeoForge 1.21.1, SD-Karte)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nicma
+Group=nicma
+WorkingDirectory=/home/nicma/servers/oneblock
+EnvironmentFile=/home/nicma/servers/oneblock/oneblock.env
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+RuntimeDirectory=oneblock
+ExecStartPre=/usr/bin/mkfifo -m 0600 /run/oneblock/console
+ExecStart=/bin/sh -c 'exec /home/nicma/servers/tools/scripts/oneblock-start.sh 0<>/run/oneblock/console'
+StandardOutput=journal
+StandardError=journal
+# Sauber herunterfahren: "stop" über die Konsole, Welt wird gespeichert
+ExecStop=/bin/sh -c 'kill -0 $MAINPID 2>/dev/null || exit 0; echo stop > /run/oneblock/console; while kill -0 $MAINPID 2>/dev/null; do sleep 1; done'
+TimeoutStopSec=120
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/nicma/servers/oneblock
+
+[Install]
+WantedBy=multi-user.target

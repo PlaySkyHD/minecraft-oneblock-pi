@@ -1,0 +1,24 @@
+# Optional: in prometheus.yml unter "rule_files:" eintragen.
+groups:
+  - name: minecraft-oneblock
+    rules:
+      - alert: MinecraftDown
+        expr: minecraft_up == 0 or absent(minecraft_up)
+        for: 5m
+        annotations:
+          summary: "OneBlock-Server antwortet nicht (RCON)"
+      - alert: MinecraftLag
+        expr: minecraft_tps{dimension="overall"} < 15
+        for: 5m
+        annotations:
+          summary: "OneBlock-Server laggt ({{ $value | printf \"%.1f\" }} TPS)"
+      - alert: MinecraftBackupAlt
+        expr: time() - minecraft_backup_last_timestamp_seconds > 26 * 3600
+        for: 30m
+        annotations:
+          summary: "Letztes OneBlock-Backup ist älter als 26 Stunden"
+      - alert: MinecraftPlatzKnapp
+        expr: minecraft_disk_free_bytes < 2e9
+        for: 15m
+        annotations:
+          summary: "Weniger als 2 GB frei auf dem Server-Laufwerk"

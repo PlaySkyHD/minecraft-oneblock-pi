@@ -1,0 +1,8 @@
+# In prometheus.yml unter "scrape_configs:" auf dem Grafana-Pi einfügen.
+# <PI-ADRESSE> = IP oder Hostname des Minecraft-Pi (LAN oder Tailscale).
+  - job_name: minecraft-oneblock
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["<PI-ADRESSE>:9225"]
+        labels:
+          server: oneblock

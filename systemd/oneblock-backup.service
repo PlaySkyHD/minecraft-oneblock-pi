@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup OneBlock-Welt auf SD-Karte
+
+[Service]
+Type=oneshot
+User=nicma
+Group=nicma
+ExecStart=/home/nicma/servers/tools/scripts/oneblock-backup.sh
+Nice=10
+IOSchedulingClass=idle

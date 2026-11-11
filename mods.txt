@@ -1,0 +1,28 @@
+# Modrinth-Projekte (Slug), werden von oneblock-update.py geladen.
+# Abhängigkeiten (z.B. CodxLib, Kotlin) werden automatisch mitgeladen.
+theoneblock
+create
+createaddition
+create-enchantment-industry
+create-mechanical-extruder
+slice-and-dice
+farmers-delight
+jei
+sophisticated-backpacks
+waystones
+jade
+appleskin
+xaeros-minimap
+xaeros-world-map
+# Nur Client (Kisten sortieren, Maus-Komfort)
+inventory-profiles-next
+mouse-tweaks
+freecam
+controlling
+# FPS (nur Client)
+sodium
+entityculling
+immediatelyfast
+# Performance (Server und Client)
+ferrite-core
+modernfix
