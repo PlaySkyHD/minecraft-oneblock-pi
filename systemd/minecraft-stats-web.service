@@ -1,0 +1,19 @@
+[Unit]
+Description=Die Werkbank - private Minecraft-Statistiken
+After=network-online.target create-exporter.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/nicma/servers/tools
+ExecStart=/usr/bin/python3 -I /home/nicma/servers/tools/web/server.py --bind 100.87.4.65 --port 8088
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+MemoryMax=160M
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+[Install]
+WantedBy=default.target

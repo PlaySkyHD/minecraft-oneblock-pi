@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111b24"><meta name="description" content="Die Werkbank – eure Create-Survival-Statistiken, Ranglisten und Spielerprofile.">
+<title>Die Werkbank · Create Survival</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Zum Inhalt</a>
+<aside class="sidebar">
+<a class="brand" href="#/overview"><img src="/favicon.svg" alt="" width="37" height="37"><span>Die Werkbank<small>Create Survival</small></span></a>
+<nav aria-label="Hauptnavigation">
+<a href="#/overview" data-page="overview"><span data-icon="overview"></span>Übersicht</a>
+<a href="#/leaderboard" data-page="leaderboard"><span data-icon="trophy"></span>Ranglisten</a>
+<a href="#/players" data-page="players"><span data-icon="players"></span>Spieler</a>
+<a href="#/compare" data-page="compare"><span data-icon="compare"></span>Vergleichen</a>
+<a href="#/explore" data-page="explore"><span data-icon="search"></span>Alle Statistiken</a>
+</nav>
+<div class="sidebar-bottom"><span class="connection-dot"></span> Unser Server, unsere Welt.<small>Privat über Tailscale</small><span class="version">Minecraft 1.21.1 · Create 6.0.10</span></div>
+</aside>
+<div class="shell">
+<header class="topbar"><div class="breadcrumb"><span>Create Survival</span><span class="slash">/</span><strong id="page-label">Übersicht</strong></div><div class="server-status" id="server-status">Serverstatus wird geladen</div></header>
+<main id="main" tabindex="-1"><div class="initial-loading"><img src="/favicon.svg" width="52" height="52" alt=""><h1>Die Werkbank wird geöffnet.</h1><p>Eure gespeicherten Spielerdaten werden geladen.</p></div></main>
+<footer><span>Die Werkbank <span class="footer-divider">/</span> Gemeinsam gebaut. Gemeinsam gezählt.</span><button id="data-info" class="text-button">Über die Daten</button></footer>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="info-dialog"><form method="dialog"><button class="close-button" aria-label="Schließen">×</button></form><h2>Was genau wird gezählt?</h2><p>Die Gesamtwerte stammen aus den gespeicherten Statistiken dieser Create-Survival-Welt. Minecraft schreibt sie regelmäßig und beim Verlassen des Servers. Änderungen können deshalb einige Minuten später erscheinen.</p><p>Spielzeit enthält AFK-Zeit. „Zu Fuß“ umfasst Gehen, Sprinten und Schleichen. Item-Benutzung ist keine zuverlässige Zahl platzierter Blöcke. Wiederholt aufgehobene Items zählen mehrfach. Automatischer Maschinenabbau wird nicht unbedingt einem Spieler zugeordnet.</p><p>Die Zeiträume „24 Stunden“ und „7 Tage“ zeigen ausschließlich Veränderungen seit Beginn unserer eigenen Aufzeichnung. Fehlende Vorgeschichte wird nicht hochgerechnet. Ein neuer Spieler oder zurückgesetzter Zähler wird für diesen Zeitraum als nicht vergleichbar markiert.</p><p>Fortschritte enthalten Minecraft- und Mod-Fortschritte, aber keine Rezeptfreischaltungen. Auch versteckte technische Fortschritte können enthalten sein.</p><p id="history-start"></p></dialog>
+</body></html>
