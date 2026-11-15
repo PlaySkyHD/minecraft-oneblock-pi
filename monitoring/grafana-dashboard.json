@@ -11,7 +11,7 @@
   "title": "Minecraft Create – Server & Spieler",
   "uid": "minecraft-oneblock",
   "schemaVersion": 39,
-  "version": 3,
+  "version": 4,
   "time": {
     "from": "now-24h",
     "to": "now"
@@ -793,8 +793,8 @@
       "id": 101
     },
     {
-      "title": "Bloecke abgebaut",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "title": "Blöcke abgebaut",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -847,7 +847,7 @@
     },
     {
       "title": "Items hergestellt",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -900,7 +900,7 @@
     },
     {
       "title": "Items aufgehoben",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -952,8 +952,8 @@
       "id": 104
     },
     {
-      "title": "Zu Fuss (Gehen + Sprinten + Schleichen)",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "title": "Zu Fuß (Gehen + Sprinten + Schleichen)",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1006,7 +1006,7 @@
     },
     {
       "title": "Spielzeit inklusive AFK",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1059,7 +1059,7 @@
     },
     {
       "title": "Fortschritte abgeschlossen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1112,7 +1112,7 @@
     },
     {
       "title": "Tode",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1165,7 +1165,7 @@
     },
     {
       "title": "Mob-Kills",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1218,7 +1218,7 @@
     },
     {
       "title": "Spieler-Kills",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1271,7 +1271,7 @@
     },
     {
       "title": "Schaden verursacht (Lebenspunkte)",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1324,7 +1324,7 @@
     },
     {
       "title": "Schaden erhalten (Lebenspunkte)",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1429,7 +1429,7 @@
       "id": 113
     },
     {
-      "title": "Aktivitaeten & Produktion",
+      "title": "Aktivitäten & Produktion",
       "type": "row",
       "collapsed": false,
       "panels": [],
@@ -1442,8 +1442,8 @@
       "id": 114
     },
     {
-      "title": "Spruenge",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "title": "Sprünge",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1495,8 +1495,8 @@
       "id": 115
     },
     {
-      "title": "Tiere gezuechtet",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "title": "Tiere gezüchtet",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1549,7 +1549,7 @@
     },
     {
       "title": "Fische gefangen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1602,7 +1602,7 @@
     },
     {
       "title": "Verzauberungen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1655,7 +1655,7 @@
     },
     {
       "title": "Villager-Handel",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1708,7 +1708,7 @@
     },
     {
       "title": "Im Bett geschlafen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1761,7 +1761,7 @@
     },
     {
       "title": "Item-Benutzungen (keine Platzierungszahl)",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1813,8 +1813,8 @@
       "id": 121
     },
     {
-      "title": "Werkzeuge / Ausruestung zerbrochen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "title": "Werkzeuge / Ausrüstung zerbrochen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1867,7 +1867,7 @@
     },
     {
       "title": "Items fallengelassen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1933,7 +1933,7 @@
     },
     {
       "title": "Gehen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -1986,7 +1986,7 @@
     },
     {
       "title": "Sprinten",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2039,7 +2039,7 @@
     },
     {
       "title": "Schleichen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2092,7 +2092,7 @@
     },
     {
       "title": "Schwimmen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2145,7 +2145,7 @@
     },
     {
       "title": "Boot",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2198,7 +2198,7 @@
     },
     {
       "title": "Lore",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2251,7 +2251,7 @@
     },
     {
       "title": "Elytra",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2304,7 +2304,7 @@
     },
     {
       "title": "Pferd",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2357,7 +2357,7 @@
     },
     {
       "title": "Klettern",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2422,8 +2422,8 @@
       "id": 134
     },
     {
-      "title": "Ausgewaehlte Aktion: $action",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "title": "Ausgewählte Aktion: $action",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2476,7 +2476,7 @@
     },
     {
       "title": "Letzter gespeicherter Stand – Alter",
-      "description": "Alter der Statistikdatei, NICHT zuletzt online. Bei Offline-Spielern darf dieser Wert beliebig gross werden.",
+      "description": "Alter der Statistikdatei, NICHT zuletzt online. Bei Offline-Spielern darf dieser Wert beliebig groß werden.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2548,7 +2548,7 @@
           "format": "table"
         }
       ],
-      "description": "Kategorie ueber die Variablen waehlen: mined, crafted, used, broken, picked_up, dropped, killed, killed_by. used ist Item-Benutzung, keine exakte Platzierung.",
+      "description": "Kategorie über die Variablen wählen: mined, crafted, used, broken, picked_up, dropped, killed, killed_by. used ist Item-Benutzung, keine exakte Platzierung.",
       "gridPos": {
         "x": 0,
         "y": 121,
@@ -2646,7 +2646,7 @@
       "id": 138
     },
     {
-      "title": "Zuwachs im gewaehlten Zeitraum – erst ab Beginn der Erfassung",
+      "title": "Zuwachs im gewählten Zeitraum – erst ab Beginn der Erfassung",
       "type": "row",
       "collapsed": false,
       "panels": [],
@@ -2659,8 +2659,8 @@
       "id": 139
     },
     {
-      "title": "Abgebaute Bloecke im Zeitraum",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "title": "Abgebaute Blöcke im Zeitraum",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2713,7 +2713,7 @@
     },
     {
       "title": "Tode im Zeitraum",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2766,7 +2766,7 @@
     },
     {
       "title": "Mob-Kills im Zeitraum",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2819,7 +2819,7 @@
     },
     {
       "title": "Statistikdatei erfolgreich gelesen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2872,7 +2872,7 @@
     },
     {
       "title": "Fortschrittsdatei erfolgreich gelesen",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
@@ -2925,7 +2925,7 @@
     },
     {
       "title": "Waystones aktiviert",
-      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum nächsten Minecraft-Speichern verzögert sein.",
       "type": "bargauge",
       "datasource": {
         "type": "prometheus",
