@@ -203,8 +203,11 @@ def main():
     p.add_argument('--exporter-url',default='http://127.0.0.1:9225/metrics')
     a=p.parse_args()
     address=ipaddress.ip_address(a.bind)
-    if not (address.is_loopback or address in ipaddress.ip_network('100.64.0.0/10')):
-        p.error('--bind muss eine lokale oder Tailscale-IPv4-Adresse sein')
+    allowed_networks = ('127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12',
+                        '192.168.0.0/16', '100.64.0.0/10')
+    if str(address) != '0.0.0.0' and not any(
+            address in ipaddress.ip_network(network) for network in allowed_networks):
+        p.error('--bind muss 0.0.0.0 oder eine lokale, private oder Tailscale-IPv4-Adresse sein')
     a.state_dir.mkdir(parents=True,exist_ok=True)
     os.chmod(a.state_dir,0o700)
     logging.basicConfig(level=logging.INFO,format='%(asctime)s %(levelname)s %(message)s')
