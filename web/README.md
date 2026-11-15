@@ -20,6 +20,8 @@ Es wurden keine Router-Portfreigaben, Tailscale-ACLs oder Funnel-Einstellungen v
 ## Ansichten
 
 - Übersicht mit Welt-Gesamtwerten, Online-Spielern, Rangliste und Rekorden.
+- Live-Feed für öffentlichen Spielchat, Beitritte/Verlassen, Tode und Fortschritte.
+- Live-Positionskarte mit Dimensionsauswahl, Zoom und X/Y/Z-Koordinaten.
 - Ranglisten mit Suche, Statistik-Auswahl, Sortierung und CSV-Download.
 - Spielerprofile mit Produktion, Kampf, Bewegung und einzelnen Fortschritten.
 - Zwei Spieler nebeneinander vergleichen.
@@ -58,8 +60,10 @@ Statische Dateien werden ohne Dienstneustart ausgeliefert.
 
 Die Anwendung liest gespeicherte Weltstatistiken über die vorhandene
 `PlayerStatistics`-Klasse und den bestehenden Exporter unter
-`http://127.0.0.1:9225/metrics` für den Live-Status. Sie sendet selbst keine
-RCON-Befehle und schreibt nicht in den Minecraft-Ordner. Snapshot-Antworten werden
+`http://127.0.0.1:9225/metrics` für den Live-Status. Für die Positionskarte nutzt sie ausschließlich feste, lesende RCON-Abfragen
+(`list`, `data get entity <Spieler> Pos` und `Dimension`) über Loopback.
+Es gibt keinen Endpunkt für benutzerdefinierte Befehle und keinen Schreibzugriff
+auf den Minecraft-Ordner. Snapshot-Antworten werden
 20 Sekunden gecacht, der Browser aktualisiert alle 30 Sekunden.
 
 Verlauf und gecachte Avatare liegen in
@@ -95,3 +99,23 @@ Designrecherche und eigene Gestaltung: `DESIGN.md`.
 Eigene SVG-Illustrationen und Icons. Space Grotesk und DM Sans werden unter der
 SIL Open Font License mitgeliefert, Lizenztexte liegen in `static/fonts/`.
 Es wurden keine externen Website-Layouts oder Minecraft-Texturen kopiert.
+
+## Live-Feed und Positionskarte
+
+`/api/live` liest ausschließlich gefilterte Spielereignisse aus `logs/latest.log`.
+Technische Meldungen, Befehlsausgaben und private Nachrichten werden nicht als Feed
+übernommen. Höchstens 250 Ereignisse bleiben im Arbeitsspeicher; beim ersten Abruf
+wird maximal das letzte MiB des aktuellen Logs gelesen. Rotation und unvollständige
+Zeilen werden berücksichtigt. Kein dauerhaftes Chatarchiv. Die Live-Ansicht fragt
+alle drei Sekunden ab, solange der Browsertab sichtbar ist.
+
+`/api/positions` fragt die Online-Spieler via RCON ab und cached das Ergebnis zehn
+Sekunden für alle Browser gemeinsam. Port und Passwort werden ausschließlich lokal
+aus `server.properties` gelesen und nie ausgeliefert. Pro Abruf werden maximal 20
+Spieler abgefragt. Ausgeloggte Spieler und Fehler werden explizit angezeigt.
+Positionen werden nicht in SQLite gespeichert. Eine echte Geländekarte wird nicht
+gerendert; die Karte zeigt X/Z im gleichen Maßstab mit Norden oben und Y in der
+Spielerliste. Sichtbar für dieselben Geräte wie die übrige Webseite.
+
+Diese Erweiterung benötigt nur einen Neustart von `minecraft-stats-web.service`,
+keine neue Minecraft-Mod, kein neues Client-Modpack und keinen Minecraft-Neustart.

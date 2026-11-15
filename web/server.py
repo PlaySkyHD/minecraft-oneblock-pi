@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Private, read-only Minecraft statistics website. No game commands or restarts."""
+"""Private, read-only Minecraft statistics website. Filtered game events and read-only position queries."""
 import argparse
+from collections import deque
+from datetime import datetime
 import importlib.util
 import ipaddress
 import json
@@ -156,7 +158,121 @@ class Snapshot:
             return self.cached
 
 
-def handler(snapshot,state_dir):
+class LiveFeed:
+    """Bounded, filtered game feed. Never expose raw log lines or commands."""
+    LINE = re.compile(r'^\[(\d{2}[A-Za-z]{3}\d{4} \d{2}:\d{2}:\d{2}\.\d+)\] \[Server thread/INFO\] \[net\.minecraft\.server\.(?:MinecraftServer|dedicated\.DedicatedServer)/?\]: (.*)$')
+    NAME = r'[A-Za-z0-9_]{1,16}'
+
+    def __init__(self, path):
+        self.path = path
+        self.events = deque(maxlen=250)
+        self.lock = threading.Lock()
+        self.identity = None
+        self.offset = 0
+        self.pending = b''
+        self.sequence = 0
+
+    @classmethod
+    def parse(cls, line):
+        match = cls.LINE.fullmatch(line)
+        if not match: return None
+        stamp, message = match.groups()
+        message = re.sub(r'§.', '', message)
+        kind, player, text = None, None, None
+        chat = re.fullmatch(r'(?:\[Not Secure\] )?<('+cls.NAME+r')> (.*)', message)
+        join = re.fullmatch(r'('+cls.NAME+r') (joined|left) the game', message)
+        advancement = re.fullmatch(r'('+cls.NAME+r') has (?:made the advancement|completed the challenge|reached the goal) \[(.*)\]', message)
+        death = re.fullmatch(r'('+cls.NAME+r') ((?:was |fell |hit the ground |drowned|blew up|burned |went up |tried to |walked |starved |suffocated |froze |experienced |discovered |didn.t want |withered |died|got |left the confines |was poked).*?)', message)
+        if chat: kind, player, text = 'chat', chat[1], chat[2]
+        elif join: kind, player, text = join[2], join[1], 'ist beigetreten' if join[2]=='joined' else 'hat den Server verlassen'
+        elif advancement: kind, player, text = 'advancement', advancement[1], advancement[2]
+        elif death: kind, player, text = 'death', death[1], death[2]
+        elif message.startswith('Done ('): kind, text = 'server', 'Server gestartet'
+        elif message=='Stopping server': kind, text = 'server', 'Server wird gestoppt'
+        if kind is None: return None
+        try: ts = datetime.strptime(stamp, '%d%b%Y %H:%M:%S.%f').timestamp()
+        except ValueError: return None
+        return {'at':ts, 'type':kind, 'player':player, 'text':text[:2000]}
+
+    def get(self):
+        with self.lock:
+            try:
+                # fstat the opened file so rotation between stat/open cannot skip data.
+                with self.path.open('rb') as log:
+                    stat = os.fstat(log.fileno())
+                    identity = (stat.st_dev, stat.st_ino)
+                    if identity != self.identity or stat.st_size < self.offset:
+                        self.identity = identity
+                        self.offset = max(0, stat.st_size-1024*1024)
+                        self.pending = b''
+                        if self.offset:
+                            log.seek(self.offset); log.readline(); self.offset = log.tell()
+                    log.seek(self.offset)
+                    data = log.read(1024*1024)
+                    self.offset = log.tell()
+                lines = (self.pending+data).split(b'\n')
+                self.pending = lines.pop()[-16384:]
+                for line in lines:
+                    event = self.parse(line.decode('utf-8', 'replace').rstrip('\r'))
+                    if event:
+                        self.sequence += 1
+                        event['id'] = self.sequence
+                        self.events.append(event)
+                return {'available':True, 'generatedAt':int(time.time()), 'events':list(self.events)}
+            except OSError:
+                return {'available':False, 'generatedAt':int(time.time()), 'events':list(self.events)}
+
+
+class Positions:
+    """Only fixed, read-only RCON commands; no browser-supplied commands."""
+    def __init__(self, server_dir):
+        self.server_dir = server_dir
+        self.lock = threading.Lock()
+        self.cached = None
+        self.cached_at = 0
+
+    @staticmethod
+    def parse_position(text):
+        match = re.search(r'has the following entity data: \[([^\]]+)\]', text)
+        if not match: raise ValueError('Position nicht verfügbar')
+        values = [float(v.strip().rstrip('dDfF')) for v in match[1].split(',')]
+        if len(values)!=3 or any(not (-32000000<v<32000000) for v in values):
+            raise ValueError('Ungültige Position')
+        return dict(zip(('x','y','z'), values))
+
+    def get(self):
+        with self.lock:
+            now = time.time()
+            if self.cached is not None and now-self.cached_at<10: return self.cached
+            connection = None
+            players, missing = [], []
+            try:
+                props = exporter.read_properties(str(self.server_dir/'server.properties'))
+                if props.get('enable-rcon')!='true': raise ValueError('RCON deaktiviert')
+                connection = exporter.Rcon('127.0.0.1', int(props.get('rcon.port','25575')), props.get('rcon.password',''), timeout=2)
+                listing = exporter.LIST_RE.search(connection.command('list'))
+                if not listing: raise ValueError('Spielerliste nicht verfügbar')
+                names = [n.strip() for n in listing[3].split(',') if n.strip()]
+                for name in names[:20]:
+                    if not re.fullmatch(r'[A-Za-z0-9_]{1,16}', name): continue
+                    try:
+                        pos = self.parse_position(connection.command('data get entity '+name+' Pos'))
+                        dim = connection.command('data get entity '+name+' Dimension')
+                        dimension = re.search(r'has the following entity data: "([a-z0-9_.-]+:[a-z0-9_./-]+)"', dim)
+                        if not dimension: raise ValueError('Dimension nicht verfügbar')
+                        players.append(dict(name=name, dimension=dimension[1], **pos))
+                    except ValueError:
+                        missing.append(name)
+                self.cached = {'available':True, 'generatedAt':int(now), 'players':players, 'missing':missing, 'onlineCount':int(listing[1]), 'limited':len(names)>20}
+            except (OSError, ValueError, exporter.RconError):
+                self.cached = {'available':False, 'generatedAt':int(now), 'players':[], 'missing':[], 'onlineCount':None, 'limited':False}
+            finally:
+                if connection: connection.close()
+            self.cached_at = now
+            return self.cached
+
+
+def handler(snapshot,state_dir,feed=None,positions=None):
     class Handler(BaseHTTPRequestHandler):
         def reply(self,code,data,content_type='application/json; charset=utf-8',cache='no-store'):
             self.send_response(code)
@@ -175,6 +291,10 @@ def handler(snapshot,state_dir):
                 if path=='/api/stats':
                     data=json.dumps(snapshot.get(),ensure_ascii=False,allow_nan=False).encode()
                     return self.reply(200,data)
+                if path=='/api/live' and feed is not None:
+                    return self.reply(200,json.dumps(feed.get(),ensure_ascii=False,allow_nan=False).encode())
+                if path=='/api/positions' and positions is not None:
+                    return self.reply(200,json.dumps(positions.get(),ensure_ascii=False,allow_nan=False).encode())
                 if path=='/healthz': return self.reply(200,b'{"ok":true}')
                 # Exact static paths only; world data/config are never served.
                 if path in ('/','/index.html'): file=ROOT/'static/index.html'
@@ -221,7 +341,7 @@ def main():
             except (OSError, ValueError, sqlite3.Error):
                 LOG.exception('Background statistics collection failed')
     threading.Thread(target=record_periodically, daemon=True).start()
-    server=ThreadingHTTPServer((a.bind,a.port),handler(snapshot,a.state_dir))
+    server=ThreadingHTTPServer((a.bind,a.port),handler(snapshot,a.state_dir,LiveFeed(a.server_dir/'logs/latest.log'),Positions(a.server_dir)))
     LOG.info('Minecraft-Statistiken: http://%s:%s',a.bind,a.port)
     server.serve_forever()
 
