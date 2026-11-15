@@ -158,11 +158,185 @@ def _esc(v):
 CLK_TCK = os.sysconf("SC_CLK_TCK")
 PAGE = os.sysconf("SC_PAGE_SIZE")
 
+# Raw Minecraft custom statistics use different units. Export each unit in its
+# own family, so sums across labels never mix ticks, centimeters and counts.
+DISTANCE_STATS = (
+    "walk", "sprint", "crouch", "swim", "walk_on_water", "walk_under_water",
+    "fall", "climb", "fly", "aviate", "boat", "minecart", "horse", "pig", "strider",
+)
+TIME_STATS = {"play_time", "total_world_time", "sneak_time", "time_since_death", "time_since_rest"}
+DAMAGE_STATS = {"damage_dealt", "damage_taken", "damage_absorbed", "damage_blocked_by_shield",
+                "damage_resisted", "damage_dealt_absorbed", "damage_dealt_resisted"}
+COUNT_STATS = (
+    "deaths", "mob_kills", "player_kills", "jump", "animals_bred", "fish_caught",
+    "enchant_item", "sleep_in_bed", "leave_game", "talked_to_villager", "traded_with_villager",
+    "open_chest", "open_barrel", "drop", "eat_cake_slice", "bell_ring", "target_hit",
+    "interact_with_crafting_table", "interact_with_furnace", "interact_with_blast_furnace",
+    "interact_with_smoker", "interact_with_anvil", "interact_with_grindstone",
+    "interact_with_smithing_table", "interact_with_brewingstand", "interact_with_stonecutter",
+)
+TOTAL_STATS = {
+    "minecraft:mined": ("blocks_mined", "Abgebaute Bloecke"),
+    "minecraft:crafted": ("items_crafted", "Hergestellte Items"),
+    "minecraft:used": ("item_uses", "Item-Benutzungen, keine exakte Zahl platzierter Bloecke"),
+    "minecraft:broken": ("items_broken", "Zerbrochene Werkzeuge und Ausruestung"),
+    "minecraft:picked_up": ("items_picked_up", "Aufgehobene Items, inklusive wiederholtem Aufheben"),
+    "minecraft:dropped": ("items_dropped", "Fallengelassene Items"),
+    "minecraft:killed": ("entities_killed", "Getoetete Wesen nach Typ aufsummiert"),
+    "minecraft:killed_by": ("deaths_to_entities", "Tode durch Wesen nach Typ aufsummiert"),
+}
 
-def main_pid(unit):
+
+def valid_statistics(data):
+    """Reject truncated/malformed snapshots; keep the last valid data on disk races."""
+    stats = data.get("stats") if isinstance(data, dict) else None
+    if not isinstance(stats, dict):
+        raise ValueError("stats must be an object")
+    for category, values in stats.items():
+        if not isinstance(category, str) or not isinstance(values, dict):
+            raise ValueError("invalid category")
+        for key, value in values.items():
+            if not isinstance(key, str) or type(value) is not int or value < 0:
+                raise ValueError("invalid statistic")
+    return stats
+
+
+class PlayerStatistics:
+    """Read saved world data only: no commands, forced saves or Minecraft changes."""
+
+    def __init__(self, server_dir):
+        self.server_dir = server_dir
+        self.cache = {}
+
+    def names(self):
+        names = {}
+        for filename in ("ops.json", "whitelist.json", "usercache.json"):
+            try:
+                with open(os.path.join(self.server_dir, filename), encoding="utf-8") as stream:
+                    for entry in json.load(stream):
+                        if isinstance(entry, dict) and entry.get("uuid") and entry.get("name"):
+                            names[entry["uuid"]] = entry["name"]
+            except (OSError, ValueError, TypeError):
+                pass
+        return names
+
+    def collect(self, m):
+        names = self.names()
+        directory = os.path.join(self.server_dir, "world", "stats")
+        errors, players = 0, 0
+        try:
+            files = sorted(f for f in os.listdir(directory) if f.endswith(".json"))
+            accessible = 1
+        except OSError:
+            files, accessible = [], 0
+            errors += 1
+        for filename in files:
+            uuid = filename[:-5]
+            labels = {"player": names.get(uuid, uuid), "uuid": uuid}
+            fresh = 1
+            try:
+                with open(os.path.join(directory, filename), encoding="utf-8") as stream:
+                    stats = valid_statistics(json.load(stream))
+                    modified = os.fstat(stream.fileno()).st_mtime
+                self.cache[uuid] = (stats, modified)
+            except (OSError, ValueError, TypeError):
+                errors += 1
+                fresh = 0
+                if uuid not in self.cache:
+                    continue
+                stats, modified = self.cache[uuid]
+            players += 1
+            m.add("minecraft_player_statistics_read_success", fresh,
+                  "1 wenn die letzte Spielerdatei erfolgreich gelesen wurde", **labels)
+            m.add("minecraft_player_statistics_saved_timestamp_seconds", modified,
+                  "Aenderungszeit der gespeicherten Statistikdatei, keine letzte Anmeldung", **labels)
+            self.emit(m, stats, labels)
+            self.advancements(m, uuid, labels)
+        existing = {filename[:-5] for filename in files}
+        if accessible:
+            self.cache = {uuid: snapshot for uuid, snapshot in self.cache.items() if uuid in existing}
+        m.add("minecraft_statistics_directory_accessible", accessible, "1 wenn world/stats lesbar ist")
+        m.add("minecraft_statistics_players", players, "Spieler mit auswertbaren gespeicherten Statistiken")
+        m.add("minecraft_statistics_read_errors", errors, "Fehler beim aktuellen Lesen der Spielerstatistiken")
+
+    @staticmethod
+    def emit(m, stats, labels):
+        custom = dict(stats.get("minecraft:custom", {}))
+        # Include zeros so leaderboards also include players without a death/kill.
+        for stat in COUNT_STATS + tuple(TIME_STATS) + tuple(DAMAGE_STATS):
+            custom.setdefault("minecraft:" + stat, 0)
+        for mode in DISTANCE_STATS:
+            custom.setdefault("minecraft:" + mode + "_one_cm", 0)
+        for key, value in sorted(custom.items()):
+            stat = key.removeprefix("minecraft:")
+            if stat.endswith("_one_cm") and key.startswith("minecraft:"):
+                m.add("minecraft_player_distance_meters_total", value / 100,
+                      "Zurueckgelegte Strecke je Bewegungsart in Metern", "counter",
+                      mode=stat.removesuffix("_one_cm"), **labels)
+            elif stat in TIME_STATS and key.startswith("minecraft:"):
+                if stat.startswith("time_since_"):
+                    m.add("minecraft_player_" + stat + "_seconds", value / 20,
+                          "Spielzeit seit letztem Tod bzw Schlaf in Sekunden bei 20 TPS", **labels)
+                else:
+                    m.add("minecraft_player_time_seconds_total", value / 20,
+                          "Gespeicherte Spielzeit in Sekunden bei 20 TPS; Arten nicht addieren", "counter",
+                          activity=stat, **labels)
+            elif stat in DAMAGE_STATS and key.startswith("minecraft:"):
+                m.add("minecraft_player_damage_health_points_total", value / 10,
+                      "Schaden in Lebenspunkten (2 Lebenspunkte = 1 Herz)", "counter",
+                      kind=stat, **labels)
+            else:
+                m.add("minecraft_player_actions_total", value,
+                      "Gespeicherte sonstige Aktionen nach Minecraft- oder Mod-Statistik", "counter",
+                      action=key, **labels)
+        foot = sum(custom.get("minecraft:" + mode + "_one_cm", 0)
+                   for mode in ("walk", "sprint", "crouch")) / 100
+        m.add("minecraft_player_on_foot_meters_total", foot,
+              "Zu Fuss: Gehen plus Sprinten plus Schleichen, ohne Schwimmen oder Fahrzeuge", "counter", **labels)
+        for category, (suffix, help_text) in TOTAL_STATS.items():
+            values = stats.get(category, {})
+            m.add("minecraft_player_" + suffix + "_total", sum(values.values()), help_text, "counter", **labels)
+        for category, values in sorted(stats.items()):
+            if category == "minecraft:custom":
+                continue
+            for key, value in sorted(values.items()):
+                m.add("minecraft_player_statistic_events_total", value,
+                      "Einzelstatistiken nach Kategorie und Block-, Item- oder Wesen-ID", "counter",
+                      category=category, statistic=key, **labels)
+
+    def advancements(self, m, uuid, labels):
+        path = os.path.join(self.server_dir, "world", "advancements", uuid + ".json")
+        try:
+            with open(path, encoding="utf-8") as stream:
+                data = json.load(stream)
+            if not isinstance(data, dict):
+                raise ValueError("invalid advancements")
+        except (OSError, ValueError):
+            m.add("minecraft_player_advancements_read_success", 0, "1 wenn Fortschrittsdatei lesbar ist", **labels)
+            return
+        m.add("minecraft_player_advancements_read_success", 1, "1 wenn Fortschrittsdatei lesbar ist", **labels)
+        count, recipes = 0, 0
+        for key, entry in data.items():
+            if not isinstance(entry, dict) or ":" not in key:
+                continue
+            if key.split(":", 1)[1].startswith("recipes/"):
+                recipes += int(entry.get("done") is True)
+                continue
+            done = int(entry.get("done") is True)
+            count += done
+            m.add("minecraft_player_advancement_completed", done,
+                  "1 wenn dieser Fortschritt abgeschlossen ist, ohne Rezeptfreischaltungen",
+                  advancement=key, **labels)
+        m.add("minecraft_player_advancements_completed", count,
+              "Abgeschlossene Fortschritte ohne Rezeptfreischaltungen, inklusive Mod-Fortschritte", **labels)
+        m.add("minecraft_player_recipe_advancements_completed", recipes,
+              "Abgeschlossene Rezept-Fortschritte; nicht die Zahl einzelner Rezepte", **labels)
+
+
+def main_pid(unit, user_unit=False):
     try:
         out = subprocess.run(
-            ["systemctl", "show", "-p", "MainPID", "--value", unit],
+            ["systemctl", *(["--user"] if user_unit else []), "show", "-p", "MainPID", "--value", unit],
             capture_output=True, text=True, timeout=5,
         ).stdout.strip()
         pid = int(out or 0)
@@ -203,6 +377,7 @@ class Collector:
         self.args = args
         self.lock = threading.Lock()
         self._world_cache = (0.0, {})
+        self.player_statistics = PlayerStatistics(args.server_dir)
 
     def world_sizes(self):
         ts, cache = self._world_cache
@@ -260,8 +435,11 @@ class Collector:
             m.add("minecraft_rcon_error", 1, "1 wenn die RCON-Abfrage fehlgeschlagen ist", reason=type(e).__name__)
         m.add("minecraft_up", up, "1 wenn der Server per RCON antwortet")
 
+        # Saved player statistics also remain available while RCON is unavailable.
+        self.player_statistics.collect(m)
+
         # --- Prozess
-        pid = main_pid(a.unit)
+        pid = main_pid(a.unit, a.user_unit)
         m.add("minecraft_process_running", int(bool(pid)), "1 wenn der systemd-Dienst einen Prozess hat")
         if pid:
             try:
@@ -332,6 +510,7 @@ def main():
     p.add_argument("--server-dir", default="/home/nicma/servers/oneblock")
     p.add_argument("--backup-dir", default="/home/nicma/mc-backup/auto")
     p.add_argument("--unit", default="oneblock.service")
+    p.add_argument("--user-unit", action="store_true", help="systemd-Benutzerdienst abfragen")
     p.add_argument("--rcon-host", default="127.0.0.1")
     p.add_argument("--world-size-interval", type=int, default=300, help="Sekunden zwischen Weltgrößen-Messungen")
     p.add_argument("--once", action="store_true", help="Metriken einmal ausgeben und beenden")

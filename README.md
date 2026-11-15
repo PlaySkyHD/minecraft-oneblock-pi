@@ -79,3 +79,101 @@ Test: `python3 exporter/oneblock_exporter.py --once`
 2. Optional `monitoring/prometheus-alerts.yml` unter `rule_files:` eintragen.
 3. In Grafana: *Dashboards → New → Import* → `monitoring/grafana-dashboard.json`
    hochladen und die Prometheus-Datenquelle auswählen.
+
+## Create Survival: Spielerstatistiken ohne Minecraft-Neustart
+
+Der aktive Server liegt inzwischen unter `/home/nicma/servers/create`. Die Units
+`create.service` und `create-exporter.service` sind **systemd-Benutzerdienste**.
+Der Exporter wird so gestartet (wie in der aktiven Unit):
+
+```bash
+python3 -I exporter/oneblock_exporter.py --port 9225 \
+  --server-dir /home/nicma/servers/create \
+  --backup-dir /home/nicma/mc-backup/create --unit create.service --user-unit
+```
+
+Nach Exporter-Aenderungen nur `systemctl --user restart create-exporter` ausfuehren.
+Der Minecraft-Dienst braucht weder Neustart noch `/reload`. Der Exporter liest
+`world/stats/*.json`, `world/advancements/*.json` und lokale Namenszuordnungen.
+Er sendet keine neuen Befehle an Minecraft und erzwingt keine Spielerspeicherung.
+
+### Neue Spieler-Metriken
+
+Alle Spielerwerte haben `player` (letzter bekannter Name) und `uuid` als Labels.
+Sie beziehen sich auf die **aktuelle Welt**, nicht auf die archivierte OneBlock-Welt.
+
+- `minecraft_player_blocks_mined_total`, `items_crafted_total`, `item_uses_total`,
+  `items_broken_total`, `items_picked_up_total`, `items_dropped_total`,
+  `entities_killed_total`, `deaths_to_entities_total` (jeweils mit Praefix
+  `minecraft_player_`): Gesamtzahlen je Kategorie.
+- `minecraft_player_statistic_events_total{category,statistic}`: alle einzelnen
+  Block-, Item- und Wesen-Statistiken einschliesslich Mod-IDs. Kategorien sind
+  `minecraft:mined`, `crafted`, `used`, `broken`, `picked_up`, `dropped`, `killed`
+  und `killed_by` (jeweils mit Namespace).
+- `minecraft_player_actions_total{action}`: alle gespeicherten sonstigen
+  Zaehlstatistiken. Unter anderem Tode, Mob-/Spieler-Kills, Spruenge, Tierzucht,
+  Fischen, Verzaubern, Schlafen, Handel, Kisten und Werkbanknutzung. Mod-Aktionen
+  wie `waystones:waystone_activated` werden ebenfalls erfasst.
+- `minecraft_player_distance_meters_total{mode}`: Gehen, Sprinten, Schleichen,
+  Schwimmen, Wasserlaufen, Tauchen, Klettern, Fallen, Flug, Elytra und Fahrzeuge.
+  Zentimeter werden in Meter umgerechnet.
+- `minecraft_player_on_foot_meters_total`: Gehen + Sprinten + Schleichen.
+- `minecraft_player_time_seconds_total{activity}`: Spielzeit inklusive AFK,
+  gesamte Weltzeit und Schleichzeit; Ticks / 20. Die Arten nicht addieren.
+- `minecraft_player_time_since_death_seconds`, `minecraft_player_time_since_rest_seconds`:
+  Spielzeit seit Tod bzw. Schlaf, kein Echtzeit-Timer fuer Offline-Spieler.
+- `minecraft_player_damage_health_points_total{kind}`: ausgeteilter, erhaltener,
+  absorbierter, abgewehrter und widerstandener Schaden; 2 Lebenspunkte = 1 Herz.
+- `minecraft_player_advancements_completed`,
+  `minecraft_player_advancement_completed{advancement}`: Fortschritte insgesamt
+  und einzeln, inklusive Mod-Fortschritte, ohne Rezeptfreischaltungen.
+- `minecraft_player_recipe_advancements_completed`: abgeschlossene Rezept-
+  Fortschritte; ein Fortschritt kann mehrere Rezepte freischalten.
+- `minecraft_player_statistics_saved_timestamp_seconds`: Datei-Aenderungszeit,
+  **nicht** letzte Anmeldung. Offline-Spieler haben naturgemaess alte Dateien.
+- `minecraft_player_statistics_read_success`, `minecraft_player_advancements_read_success`,
+  `minecraft_statistics_read_errors`, `minecraft_statistics_directory_accessible`,
+  `minecraft_statistics_players`: Zustand der Dateiauswertung.
+
+Statistiken werden erst beim regulaeren Speichern/Logout aktuell. Eine gerade
+unvollstaendig geschriebene Statistikdatei ersetzt keinen gueltigen Stand: bis zum
+naechsten erfolgreichen Lesen bleibt der letzte gute Snapshot sichtbar und
+`statistics_read_success` ist 0. Ohne vorherigen Snapshot wird kein erfundener
+Nullstand ausgegeben. Fehler einer Datei blockieren die anderen Spieler nicht.
+
+**Grenzen:** Item-Benutzungen sind keine genaue Blockplatzierungszahl. Aufheben
+kann denselben Gegenstand mehrfach zaehlen, Crafting zaehlt Ausgabemengen.
+Maschinen-Abbau wird nicht automatisch einem Spieler zugerechnet. Aktuelle XP,
+Inventare, Level und Gesundheit werden nicht aus den Statistikdateien abgeleitet.
+Spielzeit ist keine exakte aktive Spielzeit. Alte Welt-Backups koennen Zaehler
+zuruecksetzen; Prometheus behandelt dies bei `increase()` als Counter-Reset.
+Mod-Aktionen ohne bekannte Einheit werden als ihre gespeicherten Zaehler exportiert.
+
+### Dashboard aktualisieren
+
+`monitoring/grafana-dashboard.json` enthaelt weiterhin die UID
+`minecraft-oneblock`, damit das bestehende Dashboard beim Import ersetzt werden
+kann. Der Titel lautet nun **Minecraft Create – Server & Spieler**. Die bisherigen
+Serverpanels bleiben erhalten. Hinzu kommen Spieler-/Serverfilter, Ranglisten,
+Bewegungsarten, Aktionen, Fortschritte, Detailtabellen und Zeitraum-Zuwaechse.
+
+Auf dem **Monitoring-Server** bzw. im Grafana-Browser:
+
+1. Dashboards > New > Import, JSON hochladen und Prometheus-Datenquelle waehlen.
+2. Bestehendes Dashboard mit dieser UID aktualisieren; bei Bedarf zuvor dessen
+   angepasste Version aus Grafana exportieren.
+3. Job und Server auswaehlen. Scrape-Ziel bleibt `100.87.4.65:9225`.
+
+Der normale Prometheus-Scrape sammelt die neuen Metriken automatisch, sofern keine
+`metric_relabel_configs` oder `sample_limit` diese ausschliessen. Erfasst werden
+aktuell ca. 2.700 Samples (ca. 440 kB) pro Scrape fuer fuenf Spieler; der Aufwand
+waechst mit Spielern und verschiedenen Block-/Item-/Wesen-IDs. Bei einem eigenen
+Sample-Limit entsprechende Reserve einplanen.
+
+Gesamtwerte sind aus den vorhandenen Dateien sofort verfuegbar. Zeitreihen und
+Zuwaechse entstehen erst ab der ersten Erfassung; historische Zeitpunkte lassen
+sich aus den Dateien nicht rekonstruieren. Sehr kurze Zeitfenster haben ggf. noch
+keine zwei Scrapes und zeigen dann keinen Zuwachs.
+
+Der Dashboard-Generator ist `python3 monitoring/build_player_dashboard.py`.
+Tests: `python3 -m unittest discover -s tests -v`.

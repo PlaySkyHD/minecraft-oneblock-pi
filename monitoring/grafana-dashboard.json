@@ -8,10 +8,10 @@
       "pluginName": "Prometheus"
     }
   ],
-  "title": "Minecraft OneBlock",
+  "title": "Minecraft Create – Server & Spieler",
   "uid": "minecraft-oneblock",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "time": {
     "from": "now-24h",
     "to": "now"
@@ -33,6 +33,99 @@
         "query": "label_values(minecraft_up, job)",
         "refresh": 1,
         "current": {}
+      },
+      {
+        "name": "instance",
+        "label": "Server",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(minecraft_up{job=\"$job\"}, instance)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {}
+      },
+      {
+        "name": "player",
+        "label": "Spieler",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(minecraft_player_blocks_mined_total{job=\"$job\",instance=~\"$instance\"}, player)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "allValue": ".*"
+      },
+      {
+        "name": "category",
+        "label": "Detail-Kategorie",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(minecraft_player_statistic_events_total{job=\"$job\",instance=~\"$instance\"}, category)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "minecraft:mined",
+          "value": "minecraft:mined"
+        }
+      },
+      {
+        "name": "statistic",
+        "label": "Block / Item / Wesen",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(minecraft_player_statistic_events_total{job=\"$job\",instance=~\"$instance\",category=\"$category\"}, statistic)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "allValue": ".*"
+      },
+      {
+        "name": "action",
+        "label": "Aktion",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\"}, action)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "minecraft:deaths",
+          "value": "minecraft:deaths"
+        }
       }
     ]
   },
@@ -51,7 +144,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "minecraft_up{job=\"$job\"}",
+          "expr": "minecraft_up{job=\"$job\",instance=~\"$instance\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -121,7 +214,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "minecraft_players_online{job=\"$job\"}",
+          "expr": "minecraft_players_online{job=\"$job\",instance=~\"$instance\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -172,7 +265,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "minecraft_tps{job=\"$job\",dimension=\"overall\"}",
+          "expr": "minecraft_tps{job=\"$job\",instance=~\"$instance\",dimension=\"overall\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -234,7 +327,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "time() - minecraft_process_start_time_seconds{job=\"$job\"}",
+          "expr": "time() - minecraft_process_start_time_seconds{job=\"$job\",instance=~\"$instance\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -286,7 +379,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "time() - minecraft_backup_last_timestamp_seconds{job=\"$job\"}",
+          "expr": "time() - minecraft_backup_last_timestamp_seconds{job=\"$job\",instance=~\"$instance\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -346,7 +439,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "minecraft_disk_free_bytes{job=\"$job\"}",
+          "expr": "minecraft_disk_free_bytes{job=\"$job\",instance=~\"$instance\"}",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -406,7 +499,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "minecraft_player_online{job=\"$job\"}",
+          "expr": "minecraft_player_online{job=\"$job\",instance=~\"$instance\"}",
           "legendFormat": "{{player}}",
           "refId": "A"
         }
@@ -467,7 +560,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "minecraft_tps{job=\"$job\"}",
+          "expr": "minecraft_tps{job=\"$job\",instance=~\"$instance\"}",
           "legendFormat": "{{dimension}}",
           "refId": "A"
         }
@@ -510,7 +603,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "minecraft_tick_time_ms{job=\"$job\"}",
+          "expr": "minecraft_tick_time_ms{job=\"$job\",instance=~\"$instance\"}",
           "legendFormat": "{{dimension}}",
           "refId": "A"
         }
@@ -552,7 +645,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "minecraft_process_resident_memory_bytes{job=\"$job\"}",
+          "expr": "minecraft_process_resident_memory_bytes{job=\"$job\",instance=~\"$instance\"}",
           "legendFormat": "RSS",
           "refId": "A"
         }
@@ -594,7 +687,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(minecraft_process_cpu_seconds_total{job=\"$job\"}[2m])",
+          "expr": "rate(minecraft_process_cpu_seconds_total{job=\"$job\",instance=~\"$instance\"}[2m])",
           "legendFormat": "Kerne",
           "refId": "A"
         }
@@ -637,7 +730,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "minecraft_world_size_bytes{job=\"$job\",dimension!=\"total\"}",
+          "expr": "minecraft_world_size_bytes{job=\"$job\",instance=~\"$instance\",dimension!=\"total\"}",
           "legendFormat": "{{dimension}}",
           "refId": "A"
         }
@@ -670,6 +763,2219 @@
         }
       },
       "interval": "30s"
+    },
+    {
+      "title": "Spieler – Gesamtwerte seit Weltstart",
+      "type": "row",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 1
+      },
+      "id": 100
+    },
+    {
+      "title": "So liest du die Statistiken",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Die Ranglisten stammen aus **gespeicherten Minecraft-Spielerdaten** und werden ohne Serverneustart gelesen. Aktualisierung erst beim regulären Speichern oder Logout; keine erzwungenen Saves. **Item-Benutzung ist nicht gleich Blockplatzierung.** Maschinen-Abbau wird nicht automatisch einem Spieler zugerechnet. Aufgehobene Items können mehrfach zählen. Spielzeit enthält AFK-Zeit; Zeitwerte entsprechen Ticks / 20. Fortschritte schließen Rezeptfreischaltungen aus. Gesamtsummen existieren rückwirkend, Zeitverläufe und Zuwächse erst ab dem ersten Prometheus-Scrape dieser Metriken."
+      },
+      "id": 101
+    },
+    {
+      "title": "Bloecke abgebaut",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_blocks_mined_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 102
+    },
+    {
+      "title": "Items hergestellt",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_items_crafted_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 30,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 103
+    },
+    {
+      "title": "Items aufgehoben",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_items_picked_up_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 30,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 104
+    },
+    {
+      "title": "Zu Fuss (Gehen + Sprinten + Schleichen)",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_on_foot_meters_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 105
+    },
+    {
+      "title": "Spielzeit inklusive AFK",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_time_seconds_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",activity=\"play_time\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 38,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 106
+    },
+    {
+      "title": "Fortschritte abgeschlossen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_advancements_completed{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 38,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 107
+    },
+    {
+      "title": "Tode",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:deaths\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 46,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 108
+    },
+    {
+      "title": "Mob-Kills",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:mob_kills\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 46,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 109
+    },
+    {
+      "title": "Spieler-Kills",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:player_kills\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 46,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 110
+    },
+    {
+      "title": "Schaden verursacht (Lebenspunkte)",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_damage_health_points_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",kind=\"damage_dealt\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 54,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 111
+    },
+    {
+      "title": "Schaden erhalten (Lebenspunkte)",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_damage_health_points_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",kind=\"damage_taken\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 54,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 112
+    },
+    {
+      "title": "Spielzeit seit letztem Tod",
+      "description": "Spielzeit seit dem letzten Tod in Ticks / 20; kein Zeitpunkt und keine Echtzeit seit Logout.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_time_since_death_seconds{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 54,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 113
+    },
+    {
+      "title": "Aktivitaeten & Produktion",
+      "type": "row",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 62,
+        "w": 24,
+        "h": 1
+      },
+      "id": 114
+    },
+    {
+      "title": "Spruenge",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:jump\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 63,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 115
+    },
+    {
+      "title": "Tiere gezuechtet",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:animals_bred\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 63,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 116
+    },
+    {
+      "title": "Fische gefangen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:fish_caught\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 63,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 117
+    },
+    {
+      "title": "Verzauberungen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:enchant_item\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 71,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 118
+    },
+    {
+      "title": "Villager-Handel",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:traded_with_villager\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 71,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 119
+    },
+    {
+      "title": "Im Bett geschlafen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:sleep_in_bed\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 71,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 120
+    },
+    {
+      "title": "Item-Benutzungen (keine Platzierungszahl)",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_item_uses_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 79,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 121
+    },
+    {
+      "title": "Werkzeuge / Ausruestung zerbrochen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_items_broken_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 79,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 122
+    },
+    {
+      "title": "Items fallengelassen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_items_dropped_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 79,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 123
+    },
+    {
+      "title": "Bewegung im Detail",
+      "type": "row",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 87,
+        "w": 24,
+        "h": 1
+      },
+      "id": 124
+    },
+    {
+      "title": "Gehen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_distance_meters_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",mode=\"walk\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 88,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 125
+    },
+    {
+      "title": "Sprinten",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_distance_meters_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",mode=\"sprint\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 88,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 126
+    },
+    {
+      "title": "Schleichen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_distance_meters_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",mode=\"crouch\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 88,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 127
+    },
+    {
+      "title": "Schwimmen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_distance_meters_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",mode=\"swim\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 96,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 128
+    },
+    {
+      "title": "Boot",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_distance_meters_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",mode=\"boat\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 96,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 129
+    },
+    {
+      "title": "Lore",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_distance_meters_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",mode=\"minecart\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 96,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 130
+    },
+    {
+      "title": "Elytra",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_distance_meters_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",mode=\"aviate\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 104,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 131
+    },
+    {
+      "title": "Pferd",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_distance_meters_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",mode=\"horse\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 104,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 132
+    },
+    {
+      "title": "Klettern",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_distance_meters_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",mode=\"climb\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 104,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthm",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 133
+    },
+    {
+      "title": "Detail-Auswertung – alle gespeicherten Block-, Item-, Wesen- und Aktionswerte",
+      "type": "row",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 112,
+        "w": 24,
+        "h": 1
+      },
+      "id": 134
+    },
+    {
+      "title": "Ausgewaehlte Aktion: $action",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"$action\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 113,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 135
+    },
+    {
+      "title": "Letzter gespeicherter Stand – Alter",
+      "description": "Alter der Statistikdatei, NICHT zuletzt online. Bei Offline-Spielern darf dieser Wert beliebig gross werden.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(time() - minecraft_player_statistics_saved_timestamp_seconds{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 113,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "decimals": 1,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 136
+    },
+    {
+      "title": "Top 100 Einzelwerte: $category",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(topk(100,minecraft_player_statistic_events_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",category=\"$category\",statistic=~\"$statistic\"}))",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "description": "Kategorie ueber die Variablen waehlen: mined, crafted, used, broken, picked_up, dropped, killed, killed_by. used ist Item-Benutzung, keine exakte Platzierung.",
+      "gridPos": {
+        "x": 0,
+        "y": 121,
+        "w": 24,
+        "h": 12
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "uuid": true,
+              "category": true,
+              "server": true
+            },
+            "renameByName": {
+              "player": "Spieler",
+              "statistic": "Block / Item / Wesen",
+              "Value": "Anzahl"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Anzahl",
+            "desc": true
+          }
+        ]
+      },
+      "id": 137
+    },
+    {
+      "title": "Fortschritte je Spieler (ohne Rezepte)",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "minecraft_player_advancement_completed{job=\"$job\",instance=~\"$instance\",player=~\"$player\"} == 1",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 133,
+        "w": 24,
+        "h": 12
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "uuid": true,
+              "Value": true,
+              "server": true
+            },
+            "renameByName": {
+              "player": "Spieler",
+              "advancement": "Fortschritt"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "id": 138
+    },
+    {
+      "title": "Zuwachs im gewaehlten Zeitraum – erst ab Beginn der Erfassung",
+      "type": "row",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 145,
+        "w": 24,
+        "h": 1
+      },
+      "id": 139
+    },
+    {
+      "title": "Abgebaute Bloecke im Zeitraum",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(increase(minecraft_player_blocks_mined_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\"}[$__range]))",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 146,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 140
+    },
+    {
+      "title": "Tode im Zeitraum",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(increase(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:deaths\"}[$__range]))",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 146,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 141
+    },
+    {
+      "title": "Mob-Kills im Zeitraum",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(increase(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"minecraft:mob_kills\"}[$__range]))",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 146,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 142
+    },
+    {
+      "title": "Statistikdatei erfolgreich gelesen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_statistics_read_success{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 154,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 143
+    },
+    {
+      "title": "Fortschrittsdatei erfolgreich gelesen",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_advancements_read_success{job=\"$job\",instance=~\"$instance\",player=~\"$player\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 154,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 144
+    },
+    {
+      "title": "Waystones aktiviert",
+      "description": "Gespeicherter Gesamtwert seit Beginn dieser Welt; kann bis zum naechsten Minecraft-Speichern verzoegert sein.",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(minecraft_player_actions_total{job=\"$job\",instance=~\"$instance\",player=~\"$player\",action=\"waystones:waystone_activated\"})",
+          "legendFormat": "{{player}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 154,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "displayName": "${__field.labels.player}",
+          "color": {
+            "mode": "continuous-GrYlBl"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 145
     }
-  ]
+  ],
+  "description": "Servermonitoring und gespeicherte Spielerstatistiken der aktuellen Welt. Keine exakte Platzierungsstatistik."
 }

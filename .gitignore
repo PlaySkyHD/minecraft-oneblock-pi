@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 *.log
 oneblock.service.ssd-alt
+/monitoring/backups/
