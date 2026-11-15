@@ -5,12 +5,17 @@ von Minecraft und benötigt keine Mod, keinen Minecraft-Neustart und kein `/relo
 
 ## Zugriff
 
-Auf dem aktuellen Pi: **http://100.87.4.65:8088/**. Die Anwendung bindet ausschließlich
-an die Tailscale-IPv4-Adresse, nicht an 0.0.0.0 oder die LAN-Adresse. Mitspieler
-brauchen eine passende Tailscale-Freigabe/ACL für dieses Gerät und TCP-Port 8088.
-Bestehende Minecraft-Freigaben für Port 25567 erlauben diesen Port nicht automatisch.
-Es wurden keine Tailscale-ACLs, Freigaben oder Funnel-Einstellungen verändert.
-Die Anwendung hat keinen zusätzlichen Login; Zugriff erfolgt über Tailscale.
+Auf dem aktuellen Pi:
+
+- Heimnetz: **http://192.168.178.134:8088/**
+- Tailscale: **http://100.87.4.65:8088/**
+
+Der installierte Dienst bindet an `0.0.0.0:8088` (alle IPv4-Schnittstellen).
+Die LAN-Adresse wird per DHCP vergeben und kann sich ändern.
+Die Anwendung hat keinen zusätzlichen Login; Geräte im Heimnetz können sie direkt öffnen.
+Für Tailscale brauchen Mitspieler eine passende Freigabe/ACL für dieses Gerät und
+TCP-Port 8088. Minecraft-Freigaben für Port 25567 erlauben diesen Port nicht automatisch.
+Es wurden keine Router-Portfreigaben, Tailscale-ACLs oder Funnel-Einstellungen verändert.
 
 ## Ansichten
 
@@ -34,7 +39,7 @@ Die Vorschau für jeden Bewegungs-/Fortschrittswert folgt den Exporter-Definitio
 Nur Python-Standardbibliothek, keine npm-Abhängigkeiten oder Build-Schritte.
 
 ```bash
-python3 -I web/server.py --bind 100.87.4.65 --port 8088
+python3 -I web/server.py --bind 0.0.0.0 --port 8088
 systemctl --user status minecraft-stats-web
 journalctl --user -u minecraft-stats-web -f
 ```
@@ -48,8 +53,7 @@ systemctl --user enable --now minecraft-stats-web
 ```
 
 Der Nutzer `nicma` hat Linger aktiviert, damit der Dienst ohne Anmeldung startet.
-Der Dienst startet bei noch nicht verfügbarer Tailscale-Adresse nach zehn Sekunden
-erneut. Nur diesen Webdienst nach Änderungen an `web/server.py` neu starten.
+Der Dienst benötigt beim Start keine bereits zugewiesene Tailscale-Adresse. Nur diesen Webdienst nach Änderungen an `web/server.py` neu starten.
 Statische Dateien werden ohne Dienstneustart ausgeliefert.
 
 Die Anwendung liest gespeicherte Weltstatistiken über die vorhandene

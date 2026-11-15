@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/home/nicma/servers/tools
-ExecStart=/usr/bin/python3 -I /home/nicma/servers/tools/web/server.py --bind 100.87.4.65 --port 8088
+ExecStart=/usr/bin/python3 -I /home/nicma/servers/tools/web/server.py --bind 0.0.0.0 --port 8088
 Restart=on-failure
 RestartSec=10
 NoNewPrivileges=true

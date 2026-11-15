@@ -180,7 +180,8 @@ Tests: `python3 -m unittest discover -s tests -v`.
 
 ## Private Webseite für Mitspieler
 
-**Die Werkbank:** `http://100.87.4.65:8088/` (nur über Tailscale).
+**Die Werkbank:** `http://192.168.178.134:8088/` im Heimnetz oder
+`http://100.87.4.65:8088/` über Tailscale.
 Ranglisten, Spielerprofile, Vergleich, Einzelstatistiken und CSV-Export.
 Eigener systemd-Benutzerdienst: `minecraft-stats-web.service`.
 Minecraft muss dafür nicht neu gestartet werden. Installation, Datenhaltung und
