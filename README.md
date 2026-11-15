@@ -177,3 +177,11 @@ keine zwei Scrapes und zeigen dann keinen Zuwachs.
 
 Der Dashboard-Generator ist `python3 monitoring/build_player_dashboard.py`.
 Tests: `python3 -m unittest discover -s tests -v`.
+
+## Private Webseite für Mitspieler
+
+**Die Werkbank:** `http://100.87.4.65:8088/` (nur über Tailscale).
+Ranglisten, Spielerprofile, Vergleich, Einzelstatistiken und CSV-Export.
+Eigener systemd-Benutzerdienst: `minecraft-stats-web.service`.
+Minecraft muss dafür nicht neu gestartet werden. Installation, Datenhaltung und
+Tests sind in [`web/README.md`](web/README.md) beschrieben.
