@@ -14,7 +14,7 @@ const movement={walk:'Gehen',sprint:'Sprinten',crouch:'Schleichen',swim:'Schwimm
 const categories={'minecraft:mined':'Abgebaute Blöcke','minecraft:crafted':'Hergestellte Items','minecraft:picked_up':'Aufgehobene Items','minecraft:used':'Item-Benutzungen','minecraft:dropped':'Fallengelassene Items','minecraft:broken':'Zerbrochene Ausrüstung','minecraft:killed':'Getötete Wesen','minecraft:killed_by':'Tode durch Wesen','minecraft:custom':'Weitere Aktionen'};
 const translations={stone:'Stein',cobblestone:'Bruchstein',dirt:'Erde',grass_block:'Grasblock',deepslate:'Tiefenschiefer',sand:'Sand',gravel:'Kies',andesite:'Andesit',iron_ingot:'Eisenbarren',iron_nugget:'Eisennugget',oak_log:'Eichenstamm',spruce_log:'Fichtenstamm',oak_planks:'Eichenbretter',spruce_planks:'Fichtenbretter',zombie:'Zombie',skeleton:'Skelett',creeper:'Creeper',spider:'Spinne',enderman:'Enderman',cow:'Kuh',sheep:'Schaf',pig:'Schwein',chicken:'Huhn',coal:'Kohle',diamond:'Diamant',iron_ore:'Eisenerz',copper_ore:'Kupfererz',wheat:'Weizen',torch:'Fackel',netherrack:'Netherrack',diorite:'Diorit',granite:'Granit',tuff:'Tuff',sugar_cane:'Zuckerrohr'};
 const human=id=>{let key=id.split(':').pop().split('/').pop();return translations[key]||key.replace(/_/g,' ').replace(/^./,c=>c.toUpperCase());};
-const state={live:null,positions:null,liveError:false,positionError:false,feedFilter:'all',dimension:'minecraft:overworld',mapZoom:1,data:null,error:null,metric:'mined',window:'all',search:'',category:'minecraft:mined',itemSearch:'',a:null,b:null,onlineOnly:false,sortDown:true};
+const state={chatPolicy:null,chatName:'',chatDraft:'',chatBusy:false,chatFeedback:'',chatFailed:false,chatRetryUntil:0,live:null,positions:null,liveError:false,positionError:false,feedFilter:'all',dimension:'minecraft:overworld',mapZoom:1,data:null,error:null,metric:'mined',window:'all',search:'',category:'minecraft:mined',itemSearch:'',a:null,b:null,onlineOnly:false,sortDown:true};
 function avatar(p,size=''){let color=Array.from(p.uuid).reduce((a,c)=>a+c.charCodeAt(0),0)%360;let svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path fill="hsl(${color} 25% 46%)" d="M0 0h8v8H0z"/><path fill="hsl(${color} 28% 30%)" d="M0 0h8v3H0zM0 3h1v2H0zM7 3h1v2H7z"/><path fill="#e5d0b5" d="M1 3h6v4H1z"/><path fill="#293944" d="M2 4h1v1H2zM5 4h1v1H5zM3 6h2v1H3z"/></svg>`;return `<img class="avatar ${size}" src="/avatars/${esc(p.uuid)}.png" data-fallback="data:image/svg+xml,${encodeURIComponent(svg)}" alt="Avatar von ${esc(p.name)}" width="34" height="34">`;}
 document.addEventListener('error',e=>{let el=e.target;if(el instanceof HTMLImageElement&&el.dataset.fallback){el.src=el.dataset.fallback;delete el.dataset.fallback;}},true);
 const onlinePill=p=>p.online===true?'<span class="pill"><span class="connection-dot"></span>Online</span>':p.online===false?'<span class="pill off">Offline</span>':'<span class="pill unknown">Status unbekannt</span>';
@@ -50,18 +50,19 @@ document.querySelector('.skip').addEventListener('click',e=>{e.preventDefault();
 window.addEventListener('hashchange',()=>{state.search='';state.onlineOnly=false;render();updateLive();window.scrollTo(0,0);});
 refresh();setInterval(()=>{if(!document.hidden&&!['INPUT','SELECT'].includes(document.activeElement?.tagName))refresh();},30000);
 
-const eventLabels={chat:'Chat',joined:'Beitritt',left:'Verlassen',advancement:'Fortschritt',death:'Tod',server:'Server'};
+const eventLabels={webchat:'Webchat',chat:'Chat',joined:'Beitritt',left:'Verlassen',advancement:'Fortschritt',death:'Tod',server:'Server'};
 const dimensionLabels={'minecraft:overworld':'Oberwelt','minecraft:the_nether':'Nether','minecraft:the_end':'End'};
 const dimName=d=>dimensionLabels[d]||d;
 function livePage(){
  const feed=state.live, failed=state.liveError||feed?.available===false;
- const events=(feed?.events||[]).filter(e=>state.feedFilter==='all'||(state.feedFilter==='events'?e.type!=='chat':e.type==='chat')).slice().reverse();
+ const events=(feed?.events||[]).filter(e=>state.feedFilter==='all'||(state.feedFilter==='events'?!['chat','webchat'].includes(e.type):['chat','webchat'].includes(e.type))).slice().reverse();
  return `<div class="page-title"><h1>Mitten im Geschehen.</h1><p>Euer Chat, kleine Erfolge und große Abenteuer. Direkt vom Server.</p></div>
  <div class="live-intro"><span class="pill ${failed?'off':''}"><span class="connection-dot"></span>${failed?'Verbindung unterbrochen':feed?'Live · alle 3 Sekunden':'Verbindung wird aufgebaut'}</span><span class="muted">${feed?'Abgerufen '+relative(feed.generatedAt):'Einen Moment …'}</span><a class="button secondary" href="#/map">${icon('walk')}Wo seid ihr gerade?</a></div>
  ${failed?'<div class="notice warn">Der Live-Feed ist gerade nicht verfügbar. Angezeigte Ereignisse stammen vom letzten erfolgreichen Abruf.</div>':''}
+ ${chatForm()}
  <div class="toolbar"><div class="tabs" aria-label="Ereignisse filtern">${[['all','Alles'],['chat','Nur Chat'],['events','Spielereignisse']].map(([v,label])=>`<button data-feed-filter="${v}" class="${state.feedFilter===v?'active':''}" aria-pressed="${state.feedFilter===v}">${label}</button>`).join('')}</div><small class="muted">Neueste zuerst · ${events.length} Einträge</small></div>
- <section class="panel feed-panel" aria-label="Chat und Spielereignisse">${events.map(e=>{let p=state.data.players.find(p=>p.name===e.player);return `<article data-event-id="${e.id}" class="feed-event ${e.type==='chat'?'feed-chat':''}"><span class="event-symbol">${icon(e.type==='chat'?'players':e.type==='death'?'skull':e.type==='advancement'?'trophy':e.type==='server'?'box':'walk')}</span><div class="event-content"><div class="event-meta"><span class="event-type">${eventLabels[e.type]||'Ereignis'}</span><time datetime="${new Date(e.at*1000).toISOString()}">${date(e.at)}</time></div>${e.player?`<strong>${p?`<a href="#/profile/${esc(p.uuid)}">${esc(e.player)}</a>`:esc(e.player)}</strong>`:''}<p class="${e.type==='chat'?'chat-message':''}">${esc(e.text)}</p></div></article>`;}).join('')||`<div class="empty"><h3>${feed?'Hier ist es noch ruhig.':'Live-Feed wird geladen.'}</h3><p>${feed?'Neue Nachrichten und Spielereignisse erscheinen automatisch.':'Die Verbindung zum Server wird hergestellt.'}</p></div>`}</section>
- <p class="compare-note">Nur lesen · öffentlicher Spielchat, Beitritte, Verlassen, Tode und Fortschritte. Bis zu 250 Ereignisse aus dem aktuellen Serverlog; kein vollständiges Chatarchiv.</p>`;
+ <section class="panel feed-panel" aria-label="Chat und Spielereignisse">${events.map(e=>{let p=e.type==='webchat'?null:state.data.players.find(p=>p.name===e.player);return `<article data-event-id="${e.id}" class="feed-event ${['chat','webchat'].includes(e.type)?'feed-chat':''}"><span class="event-symbol">${icon(['chat','webchat'].includes(e.type)?'players':e.type==='death'?'skull':e.type==='advancement'?'trophy':e.type==='server'?'box':'walk')}</span><div class="event-content"><div class="event-meta"><span class="event-type">${eventLabels[e.type]||'Ereignis'}</span><time datetime="${new Date(e.at*1000).toISOString()}">${date(e.at)}</time></div>${e.player?`<strong>${e.type==='webchat'?'Web · ':''}${p?`<a href="#/profile/${esc(p.uuid)}">${esc(e.player)}</a>`:esc(e.player)}</strong>`:''}<p class="${['chat','webchat'].includes(e.type)?'chat-message':''}">${esc(e.text)}</p></div></article>`;}).join('')||`<div class="empty"><h3>${feed?'Hier ist es noch ruhig.':'Live-Feed wird geladen.'}</h3><p>${feed?'Neue Nachrichten und Spielereignisse erscheinen automatisch.':'Die Verbindung zum Server wird hergestellt.'}</p></div>`}</section>
+ <p class="compare-note">Öffentlicher Spielchat, Beitritte, Verlassen, Tode und Fortschritte. Bis zu 250 aktuelle Ereignisse; kein vollständiges Chatarchiv.</p>`;
 }
 function mapPage(){
  const data=state.positions, failed=state.positionError||data?.available===false, all=data?.players||[];
@@ -93,8 +94,29 @@ async function updateLive(){
   const r=await fetch(page==='map'?'/api/positions':'/api/live',{cache:'no-store'});
   if(!r.ok)throw Error('HTTP '+r.status);
   const data=await r.json();
+  if(page==='live'){try{const q=await fetch('/api/chat',{cache:'no-store'});if(q.ok)applyChatQuota(await q.json());}catch(e){/* Keep the last quota; sending still checks the server. */}}
   if(page==='map'){state.positions=data;state.positionError=false;}else{state.live=data;state.liveError=false;}
  }catch(e){if(page==='map')state.positionError=true;else state.liveError=true;}
  finally{liveRequestRunning=false;if(location.hash.replace(/^#\/?/,'').split('/')[0]===page)render();}
 }
 updateLive();setInterval(updateLive,3000);
+
+function applyChatQuota(q){if(!q)return;state.chatPolicy=q;state.chatRetryUntil=Date.now()+(q.retryAfter||0)*1000;}
+function chatWait(){return Math.max(0,Math.ceil((state.chatRetryUntil-Date.now())/1000));}
+function chatCanSend(){return state.chatPolicy?.enabled&&!state.chatBusy&&!chatWait()&&/^[A-Za-z0-9_]{1,16}$/.test(state.chatName)&&state.chatDraft.trim().length>0&&state.chatDraft.length<=state.chatPolicy.maxLength;}
+function chatHint(){let q=state.chatPolicy;if(!q)return 'Nachrichtenlimit wird geladen …';if(!q.enabled)return 'Der Webchat ist deaktiviert.';let wait=chatWait();return wait?`Limit erreicht · in ${wait} Sekunden wieder schreiben`:`${q.remaining} Nachrichten verfügbar · maximal ${q.limit} in ${q.windowSeconds} Sekunden pro IP-Adresse`;}
+function chatForm(){let max=state.chatPolicy?.maxLength||200;return `<section class="panel chat-composer"><div class="panel-header"><h3>Schreib in die Welt.</h3><small>Im Spiel als „Web · Anzeigename“</small></div><form id="webchat-form"><div class="chat-fields"><label>Anzeigename<input id="chat-name" name="name" value="${esc(state.chatName)}" autocomplete="nickname" maxlength="16" pattern="[A-Za-z0-9_]{1,16}" placeholder="Dein Name" required></label><label class="chat-text-field">Nachricht<input id="chat-message" name="message" value="${esc(state.chatDraft)}" maxlength="${max}" placeholder="Was möchtest du den anderen sagen?" autocomplete="off" required></label><button id="chat-send" class="button" type="submit" ${chatCanSend()?'':'disabled'}>${state.chatBusy?'Wird gesendet …':'Senden'}</button></div><div class="chat-form-meta"><span id="chat-quota" aria-live="polite">${esc(chatHint())}</span><span id="chat-length">${state.chatDraft.length}/${max}</span></div><p id="chat-feedback" role="status" class="chat-feedback ${state.chatFailed?'failed':''}">${esc(state.chatFeedback)}</p><p class="chat-identity-note">Frei gewählter Anzeigename, nicht mit einem Minecraft-Konto verknüpft.</p></form></section>`;}
+function syncChatForm(){let b=$('#chat-send'),q=$('#chat-quota'),count=$('#chat-length');if(b){b.disabled=!chatCanSend();b.textContent=state.chatBusy?'Wird gesendet …':'Senden';}if(q){let hint=chatHint();if(q.textContent!==hint)q.textContent=hint;}if(count)count.textContent=state.chatDraft.length+'/'+(state.chatPolicy?.maxLength||200);}
+document.addEventListener('input',e=>{if(e.target.id==='chat-name'){state.chatName=e.target.value;syncChatForm();}else if(e.target.id==='chat-message'){state.chatDraft=e.target.value;syncChatForm();}});
+document.addEventListener('submit',async e=>{
+ if(e.target.id!=='webchat-form')return;e.preventDefault();if(!chatCanSend())return;
+ const payload={name:state.chatName,message:state.chatDraft};state.chatBusy=true;state.chatFeedback='';state.chatFailed=false;syncChatForm();
+ try{
+  const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d=await r.json();if(d.quota)applyChatQuota(d.quota);
+  if(!r.ok)throw Error(d.error||'Nachricht konnte nicht gesendet werden.');
+  if(state.chatDraft===payload.message)state.chatDraft='';state.chatFeedback='Nachricht gesendet.';
+ }catch(error){state.chatFailed=true;state.chatFeedback=error.message||'Übertragung nicht bestätigt. Bitte im Chat prüfen.';}
+ finally{state.chatBusy=false;if(location.hash.replace(/^#\/?/,'').split('/')[0]==='live')render();updateLive();}
+});
+setInterval(syncChatForm,1000);
