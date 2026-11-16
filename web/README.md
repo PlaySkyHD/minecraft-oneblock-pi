@@ -21,6 +21,7 @@ Es wurden keine Router-Portfreigaben, Tailscale-ACLs oder Funnel-Einstellungen v
 
 - Übersicht mit Welt-Gesamtwerten, Online-Spielern, Rangliste und Rekorden.
 - Live-Feed für öffentlichen Spielchat, Beitritte/Verlassen, Tode und Fortschritte.
+- Schreiben vom Browser in den Spielchat mit serverseitigem Nachrichtenlimit.
 - Live-Positionskarte mit Dimensionsauswahl, Zoom und X/Y/Z-Koordinaten.
 - Ranglisten mit Suche, Statistik-Auswahl, Sortierung und CSV-Download.
 - Spielerprofile mit Produktion, Kampf, Bewegung und einzelnen Fortschritten.
@@ -62,8 +63,9 @@ Die Anwendung liest gespeicherte Weltstatistiken über die vorhandene
 `PlayerStatistics`-Klasse und den bestehenden Exporter unter
 `http://127.0.0.1:9225/metrics` für den Live-Status. Für die Positionskarte nutzt sie ausschließlich feste, lesende RCON-Abfragen
 (`list`, `data get entity <Spieler> Pos` und `Dimension`) über Loopback.
-Es gibt keinen Endpunkt für benutzerdefinierte Befehle und keinen Schreibzugriff
-auf den Minecraft-Ordner. Snapshot-Antworten werden
+Der Webchat sendet zusätzlich genau einen festen `tellraw @a`-Befehl mit
+JSON-Textkomponenten. Es gibt keinen Endpunkt für benutzerdefinierte Befehle und
+keinen Schreibzugriff auf den Minecraft-Ordner. Snapshot-Antworten werden
 20 Sekunden gecacht, der Browser aktualisiert alle 30 Sekunden.
 
 Verlauf und gecachte Avatare liegen in
@@ -106,7 +108,9 @@ Es wurden keine externen Website-Layouts oder Minecraft-Texturen kopiert.
 Technische Meldungen, Befehlsausgaben und private Nachrichten werden nicht als Feed
 übernommen. Höchstens 250 Ereignisse bleiben im Arbeitsspeicher; beim ersten Abruf
 wird maximal das letzte MiB des aktuellen Logs gelesen. Rotation und unvollständige
-Zeilen werden berücksichtigt. Kein dauerhaftes Chatarchiv. Die Live-Ansicht fragt
+Zeilen werden berücksichtigt. Webnachrichten werden nach bestätigter RCON-Übertragung als `webchat` in den
+gemeinsamen Feed aufgenommen und verbleiben nur im Arbeitsspeicher des Webdienstes.
+Kein dauerhaftes Chatarchiv. Die Live-Ansicht fragt
 alle drei Sekunden ab, solange der Browsertab sichtbar ist.
 
 `/api/positions` fragt die Online-Spieler via RCON ab und cached das Ergebnis zehn
@@ -119,3 +123,39 @@ Spielerliste. Sichtbar für dieselben Geräte wie die übrige Webseite.
 
 Diese Erweiterung benötigt nur einen Neustart von `minecraft-stats-web.service`,
 keine neue Minecraft-Mod, kein neues Client-Modpack und keinen Minecraft-Neustart.
+
+## Schreiben im Webchat
+
+Im Reiter **Live & Chat** Anzeigename und Nachricht eingeben. Im Spiel erscheint
+`[Web · Anzeigename] Nachricht`; der Anzeigename ist frei gewählt und kein
+verifiziertes Minecraft-Konto. Zugriff besteht für dieselben Heimnetz-/Tailscale-
+Geräte wie auf die übrige Webseite. Nachrichten sind öffentlicher Chat.
+
+- Standard: **5 Nachrichten je gleitendem 30-Sekunden-Zeitfenster pro IP-Adresse**.
+- Zusätzlich höchstens **20 Nachrichten pro 30 Sekunden insgesamt**.
+- Maximal **200 Zeichen**, Anzeigename 1–16 Zeichen (A–Z, a–z, 0–9, Unterstrich).
+- Limits gelten serverseitig und gemeinsam über Tabs; neue Namen ändern sie nicht.
+- IP wird aus der TCP-Verbindung gelesen, Weiterleitungsheader werden ignoriert.
+  LAN und Tailscale können für dasselbe Gerät unterschiedliche IPs liefern. Geräte
+  hinter einem Proxy teilen dessen Limit; ein Benutzerkonto-Limit gibt es nicht.
+- HTTP 429 mit `Retry-After` und sichtbarer Wartezeit bei erreichtem Limit.
+- Auch nicht bestätigte Übertragungen zählen, damit Fehler nicht zu Retry-Spam
+  führen. Nachrichten werden nie automatisch erneut gesendet.
+- Zähler liegen im Arbeitsspeicher und werden beim Webdienst-Neustart zurückgesetzt.
+
+Konfigurierbar über die Startparameter des Webdienstes:
+
+```text
+--chat-limit 5 --chat-window 30 --chat-global-limit 20 --chat-max-length 200
+```
+
+`--disable-webchat` schaltet das Schreiben ab, die übrigen Ansichten bleiben aktiv.
+Nach Änderung des Dienstes `systemctl --user daemon-reload` und nur
+`systemctl --user restart minecraft-stats-web.service` ausführen.
+
+API: `GET /api/chat` liefert Limits und verbleibendes Kontingent für die Client-IP.
+`POST /api/chat` nimmt ausschließlich JSON mit `name` und `message` an. Ein
+passender Same-Origin-Header wird vorausgesetzt; kein CORS-Zugriff. Maximale
+Requestgröße 2048 Bytes, keine Steuerzeichen oder Zeilenumbrüche. Nachrichtentext
+wird als JSON-Literal übertragen; Slashes, Selektoren und HTML sind Text und keine
+Befehle oder interaktiven Minecraft-Komponenten. RCON-Passwort bleibt lokal.

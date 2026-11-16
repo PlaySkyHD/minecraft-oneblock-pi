@@ -7,6 +7,8 @@ import importlib.util
 import ipaddress
 import json
 import logging
+import math
+import unicodedata
 import mimetypes
 import os
 from pathlib import Path
@@ -194,6 +196,11 @@ class LiveFeed:
         except ValueError: return None
         return {'at':ts, 'type':kind, 'player':player, 'text':text[:2000]}
 
+    def add_webchat(self, name, message):
+        with self.lock:
+            self.sequence += 1
+            self.events.append({'id':self.sequence,'at':time.time(),'type':'webchat','player':name,'text':message})
+
     def get(self):
         with self.lock:
             try:
@@ -272,9 +279,84 @@ class Positions:
             return self.cached
 
 
-def handler(snapshot,state_dir,feed=None,positions=None):
+class ChatError(Exception):
+    def __init__(self, code, message, quota=None):
+        super().__init__(message)
+        self.code, self.quota = code, quota
+
+
+class ChatGateway:
+    """Bounded sliding windows keyed by socket peer, never forwarded headers."""
+    def __init__(self, server_dir, feed, limit=5, window=30, global_limit=20,
+                 max_length=200, enabled=True, sender=None, clock=time.monotonic):
+        self.server_dir, self.feed = server_dir, feed
+        self.limit, self.window, self.global_limit = limit, window, global_limit
+        self.max_length, self.enabled = max_length, enabled
+        self.sender, self.clock = sender or self.broadcast, clock
+        self.lock = threading.Lock()
+        self.peers, self.total = {}, deque()
+
+    def _quota(self, peer, now):
+        cutoff = now-self.window
+        while self.total and self.total[0]<=cutoff: self.total.popleft()
+        for key in list(self.peers):
+            queue = self.peers[key]
+            while queue and queue[0]<=cutoff: queue.popleft()
+            if not queue: del self.peers[key]
+        queue = self.peers.get(peer, ())
+        retry = max(queue[0]+self.window-now if len(queue)>=self.limit else 0,
+                    self.total[0]+self.window-now if len(self.total)>=self.global_limit else 0)
+        return {'enabled':self.enabled,'limit':self.limit,'windowSeconds':self.window,
+                'globalLimit':self.global_limit,'maxLength':self.max_length,
+                'remaining':max(0,min(self.limit-len(queue),self.global_limit-len(self.total))),
+                'retryAfter':max(0,math.ceil(retry))}
+
+    def info(self, peer):
+        with self.lock: return self._quota(peer, self.clock())
+
+    def send(self, peer, payload):
+        if not self.enabled: raise ChatError(403,'Der Webchat ist derzeit deaktiviert.')
+        if not isinstance(payload,dict) or set(payload)!={'name','message'}:
+            raise ChatError(400,'Bitte Anzeigename und Nachricht angeben.')
+        name, message = payload['name'], payload['message']
+        if not isinstance(name,str) or not re.fullmatch(r'[A-Za-z0-9_]{1,16}',name):
+            raise ChatError(400,'Anzeigename: 1–16 Buchstaben (A–Z), Zahlen oder Unterstriche.')
+        if not isinstance(message,str) or not message.strip() or len(message)>self.max_length:
+            raise ChatError(400,f'Deine Nachricht muss 1–{self.max_length} Zeichen lang sein.')
+        if any(unicodedata.category(c).startswith('C') or c=='§' for c in message):
+            raise ChatError(400,'Zeilenumbrüche, Steuerzeichen und Formatierungscodes sind nicht erlaubt.')
+        message = message.strip()
+        with self.lock:
+            now = self.clock()
+            quota = self._quota(peer,now)
+            if quota['retryAfter']:
+                raise ChatError(429,'Nachrichtenlimit erreicht. Bitte kurz warten.',quota)
+            self.total.append(now)
+            self.peers.setdefault(peer,deque()).append(now)
+            quota = self._quota(peer,now)
+        # Reserve before sending, including failed/ambiguous deliveries. Never auto-retry.
+        try: self.sender(name,message)
+        except (OSError,ValueError,exporter.RconError):
+            raise ChatError(503,'Übertragung nicht bestätigt. Bitte im Chat prüfen, bevor du erneut sendest.',quota)
+        self.feed.add_webchat(name,message)
+        return {'ok':True,'quota':quota}
+
+    def broadcast(self, name, message):
+        props = exporter.read_properties(str(self.server_dir/'server.properties'))
+        if props.get('enable-rcon')!='true': raise ValueError('RCON deaktiviert')
+        connection = exporter.Rcon('127.0.0.1',int(props.get('rcon.port','25575')),props.get('rcon.password',''),timeout=3)
+        try:
+            # JSON literal text: selectors, slashes and quotes in user input cannot
+            # become commands, clickable components or Minecraft selectors.
+            component = [{'text':'[Web · '+name+'] ','color':'#81d8bd'},
+                         {'text':message,'color':'white'}]
+            connection.command('tellraw @a '+json.dumps(component,ensure_ascii=False))
+        finally: connection.close()
+
+
+def handler(snapshot,state_dir,feed=None,positions=None,chat=None):
     class Handler(BaseHTTPRequestHandler):
-        def reply(self,code,data,content_type='application/json; charset=utf-8',cache='no-store'):
+        def reply(self,code,data,content_type='application/json; charset=utf-8',cache='no-store',headers=None):
             self.send_response(code)
             self.send_header('Content-Type',content_type)
             self.send_header('Content-Length',str(len(data)))
@@ -282,12 +364,45 @@ def handler(snapshot,state_dir,feed=None,positions=None):
             self.send_header('X-Content-Type-Options','nosniff')
             self.send_header('Referrer-Policy','no-referrer')
             self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
+            for name,value in (headers or {}).items(): self.send_header(name,str(value))
             self.end_headers()
             if self.command!='HEAD': self.wfile.write(data)
+        def do_POST(self):
+            if urlsplit(self.path).path!='/api/chat' or chat is None:
+                return self.reply(404,b'{"error":"Nicht gefunden"}')
+            try:
+                origin = urlsplit(self.headers.get('Origin',''))
+                if (origin.scheme not in ('http','https') or origin.netloc!=self.headers.get('Host')
+                        or origin.path or origin.query or origin.fragment):
+                    raise ChatError(403,'Nachrichten bitte direkt auf der Werkbank senden.')
+                if self.headers.get('Content-Type','').split(';')[0].strip()!='application/json':
+                    raise ChatError(415,'JSON erforderlich.')
+                lengths = self.headers.get_all('Content-Length') or []
+                if len(lengths)!=1 or self.headers.get('Transfer-Encoding'):
+                    raise ChatError(400,'Ungültige Anfrage.')
+                try: length = int(lengths[0])
+                except ValueError: raise ChatError(400,'Ungültige Anfrage.')
+                if not 0<length<=2048: raise ChatError(413,'Nachricht zu groß.')
+                self.connection.settimeout(5)
+                body = self.rfile.read(length)
+                if len(body)!=length: raise ChatError(400,'Unvollständige Anfrage.')
+                try: payload = json.loads(body.decode('utf-8'))
+                except (ValueError,UnicodeError): raise ChatError(400,'Ungültige Nachricht.')
+                result = chat.send(self.client_address[0],payload)
+                return self.reply(200,json.dumps(result,ensure_ascii=False).encode())
+            except ChatError as error:
+                data = {'error':str(error),'quota':error.quota}
+                headers = {'Retry-After':error.quota['retryAfter']} if error.code==429 else {}
+                return self.reply(error.code,json.dumps(data,ensure_ascii=False).encode(),headers=headers)
+            except (OSError,ValueError):
+                return self.reply(400,b'{"error":"Unvollstaendige Anfrage"}')
+
         def do_HEAD(self): self.do_GET()
         def do_GET(self):
             path=urlsplit(self.path).path
             try:
+                if path=='/api/chat' and chat is not None:
+                    return self.reply(200,json.dumps(chat.info(self.client_address[0])).encode())
                 if path=='/api/stats':
                     data=json.dumps(snapshot.get(),ensure_ascii=False,allow_nan=False).encode()
                     return self.reply(200,data)
@@ -321,7 +436,14 @@ def main():
     p.add_argument('--server-dir',type=Path,default=Path('/home/nicma/servers/create'))
     p.add_argument('--state-dir',type=Path,default=Path.home()/'.local/share/minecraft-stats')
     p.add_argument('--exporter-url',default='http://127.0.0.1:9225/metrics')
+    p.add_argument('--chat-limit',type=int,default=5)
+    p.add_argument('--chat-window',type=int,default=30)
+    p.add_argument('--chat-global-limit',type=int,default=20)
+    p.add_argument('--chat-max-length',type=int,default=200)
+    p.add_argument('--disable-webchat',action='store_true')
     a=p.parse_args()
+    if not (1<=a.chat_limit<=100 and 1<=a.chat_window<=3600 and a.chat_limit<=a.chat_global_limit<=1000 and 1<=a.chat_max_length<=500):
+        p.error('Ungültige Webchat-Limits')
     address=ipaddress.ip_address(a.bind)
     allowed_networks = ('127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12',
                         '192.168.0.0/16', '100.64.0.0/10')
@@ -341,7 +463,10 @@ def main():
             except (OSError, ValueError, sqlite3.Error):
                 LOG.exception('Background statistics collection failed')
     threading.Thread(target=record_periodically, daemon=True).start()
-    server=ThreadingHTTPServer((a.bind,a.port),handler(snapshot,a.state_dir,LiveFeed(a.server_dir/'logs/latest.log'),Positions(a.server_dir)))
+    feed=LiveFeed(a.server_dir/'logs/latest.log')
+    feed.get()
+    chat=ChatGateway(a.server_dir,feed,a.chat_limit,a.chat_window,a.chat_global_limit,a.chat_max_length,not a.disable_webchat)
+    server=ThreadingHTTPServer((a.bind,a.port),handler(snapshot,a.state_dir,feed,Positions(a.server_dir),chat))
     LOG.info('Minecraft-Statistiken: http://%s:%s',a.bind,a.port)
     server.serve_forever()
 
