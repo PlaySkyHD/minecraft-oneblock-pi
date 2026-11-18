@@ -16,6 +16,7 @@ import re
 import sqlite3
 import threading
 import time
+import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 from urllib.request import urlopen
@@ -88,8 +89,32 @@ SUMMARY_ACTIONS = {'deaths':'deaths','mobKills':'mob_kills','playerKills':'playe
                    'trades':'traded_with_villager','slept':'sleep_in_bed','chests':'open_chest'}
 
 
+def vault_core_chance(server_dir):
+    """Read the supported Heavy Core override; hide simulation if unavailable."""
+    path = server_dir/'world/datapacks/heavy-core-1-percent.zip'
+    name = 'data/minecraft/loot_table/chests/trial_chambers/reward_ominous_unique.json'
+    try:
+        with zipfile.ZipFile(path) as archive:
+            table = json.loads(archive.read(name))
+        entries = table['pools'][0]['entries']
+        weights = {e['name']: e.get('weight', 1) for e in entries}
+        expected = {'minecraft:enchanted_golden_apple':3, 'minecraft:flow_armor_trim_smithing_template':3,
+                    'minecraft:flow_banner_pattern':2, 'minecraft:music_disc_creator':1, 'minecraft:heavy_core':1}
+        if len(entries) != 5 or weights != expected: return None
+        core = next(e for e in entries if e['name'] == 'minecraft:heavy_core')
+        funcs = core['functions']
+        if len(funcs) != 1 or funcs[0]['function'] != 'minecraft:set_count' or funcs[0]['count'] != 0: return None
+        conditions = funcs[0]['conditions']
+        if len(conditions) != 1 or conditions[0]['condition'] != 'minecraft:random_chance': return None
+        chance = float(conditions[0]['chance'])
+        return .75 * .1 * (1-chance) if 0 <= chance <= 1 else None
+    except (OSError, KeyError, TypeError, ValueError, StopIteration, zipfile.BadZipFile):
+        return None
+
+
 class Snapshot:
     def __init__(self, server_dir, state_dir, exporter_url):
+        self.server_dir = server_dir
         self.reader = exporter.PlayerStatistics(str(server_dir))
         self.history = History(state_dir/'history.sqlite3')
         self.exporter_url = exporter_url
@@ -154,7 +179,7 @@ class Snapshot:
             errors = next((value for name,value,l in samples.rows if name=='minecraft_statistics_read_errors'),0)
             self.cached = {'generatedAt':now,'server':{'name':'Create Survival','minecraft':'1.21.1','create':'6.0.10',
                 'online':live['up'],'statusAvailable':live['available'],'tps':live['tps'],'onlineCount':live['onlineCount']},
-                'players':players,'history':history,'readErrors':errors,
+                'players':players,'history':history,'readErrors':errors,'vaultCoreChance':vault_core_chance(self.server_dir),
                 'note':'Statistiken werden beim regulären Speichern durch Minecraft aktualisiert. Spielzeit enthält AFK-Zeit.'}
             self.cached_at = now
             return self.cached

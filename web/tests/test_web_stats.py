@@ -5,6 +5,7 @@ import sqlite3
 import tempfile
 import threading
 import unittest
+import zipfile
 from http.server import ThreadingHTTPServer
 from urllib.error import HTTPError
 from urllib.request import urlopen
@@ -69,6 +70,28 @@ class SnapshotTests(unittest.TestCase):
             self.assertEqual(p['summary']['walkMeters'],123)
             self.assertIsNone(p['online'])
             self.assertNotIn('password',json.dumps(d).lower())
+
+
+class VaultChanceTests(unittest.TestCase):
+    def test_configured_chance_and_unknown_configuration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); packs=root/'world/datapacks'; packs.mkdir(parents=True)
+            self.assertIsNone(web.vault_core_chance(root))
+            entries=[{'name':'minecraft:enchanted_golden_apple','weight':3},
+                     {'name':'minecraft:flow_armor_trim_smithing_template','weight':3},
+                     {'name':'minecraft:flow_banner_pattern','weight':2},
+                     {'name':'minecraft:music_disc_creator'},
+                     {'name':'minecraft:heavy_core','functions':[{'function':'minecraft:set_count','count':0,
+                        'conditions':[{'condition':'minecraft:random_chance','chance':1/3}]}]}]
+            path=packs/'heavy-core-1-percent.zip'
+            def write():
+                with zipfile.ZipFile(path,'w') as z:
+                    z.writestr('data/minecraft/loot_table/chests/trial_chambers/reward_ominous_unique.json',
+                               json.dumps({'pools':[{'entries':entries}]}))
+            write()
+            self.assertAlmostEqual(web.vault_core_chance(root),.05)
+            entries[0]['weight']=5; write()
+            self.assertIsNone(web.vault_core_chance(root))
 
 
 class HTTPTests(unittest.TestCase):

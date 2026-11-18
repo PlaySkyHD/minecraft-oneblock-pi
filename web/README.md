@@ -23,6 +23,7 @@ Es wurden keine Router-Portfreigaben, Tailscale-ACLs oder Funnel-Einstellungen v
 - Live-Feed für öffentlichen Spielchat, Beitritte/Verlassen, Tode und Fortschritte.
 - Schreiben vom Browser in den Spielchat mit serverseitigem Nachrichtenlimit.
 - Live-Positionskarte mit Dimensionsauswahl, Zoom und X/Y/Z-Koordinaten.
+- Schatzkammer mit gespeicherten unheilvollen Schlüsselverwendungen und virtueller Beutesimulation.
 - Ranglisten mit Suche, Statistik-Auswahl, Sortierung und CSV-Download.
 - Spielerprofile mit Produktion, Kampf, Bewegung und einzelnen Fortschritten.
 - Zwei Spieler nebeneinander vergleichen.
