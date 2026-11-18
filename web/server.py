@@ -24,6 +24,9 @@ ROOT = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location('minecraft_exporter', ROOT.parent/'exporter/oneblock_exporter.py')
 exporter = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(exporter)
+vault_spec = importlib.util.spec_from_file_location('minecraft_vault', ROOT/'vault.py')
+vault = importlib.util.module_from_spec(vault_spec)
+vault_spec.loader.exec_module(vault)
 LOG = logging.getLogger('minecraft-stats')
 
 
@@ -86,6 +89,25 @@ SUMMARY_TOTALS = {'mined':'blocks_mined','crafted':'items_crafted','pickedUp':'i
 SUMMARY_ACTIONS = {'deaths':'deaths','mobKills':'mob_kills','playerKills':'player_kills','jumps':'jump',
                    'bred':'animals_bred','fish':'fish_caught','enchanted':'enchant_item',
                    'trades':'traded_with_villager','slept':'sleep_in_bed','chests':'open_chest'}
+
+
+class VaultModel:
+    """Loot model of the ominous vault, rebuilt at most once a minute."""
+    def __init__(self, server_dir):
+        self.server_dir = server_dir
+        self.lock = threading.Lock()
+        self.cached = None
+        self.cached_at = 0
+
+    def get(self):
+        with self.lock:
+            now = time.monotonic()
+            if self.cached is None or now-self.cached_at >= 60:
+                self.cached = vault.build(self.server_dir)
+                self.cached_at = now
+                if not self.cached['available']:
+                    LOG.warning('Vault model unavailable: %s', self.cached['reason'])
+            return self.cached
 
 
 class Snapshot:
@@ -354,7 +376,7 @@ class ChatGateway:
         finally: connection.close()
 
 
-def handler(snapshot,state_dir,feed=None,positions=None,chat=None):
+def handler(snapshot,state_dir,feed=None,positions=None,chat=None,vault_model=None):
     class Handler(BaseHTTPRequestHandler):
         def reply(self,code,data,content_type='application/json; charset=utf-8',cache='no-store',headers=None):
             self.send_response(code)
@@ -410,10 +432,15 @@ def handler(snapshot,state_dir,feed=None,positions=None,chat=None):
                     return self.reply(200,json.dumps(feed.get(),ensure_ascii=False,allow_nan=False).encode())
                 if path=='/api/positions' and positions is not None:
                     return self.reply(200,json.dumps(positions.get(),ensure_ascii=False,allow_nan=False).encode())
+                if path=='/api/vault' and vault_model is not None:
+                    data=vault_model.get()
+                    public=({k:data[k] for k in ('available','model','items','coreChance','overrides')} if data['available']
+                            else {'available':False})
+                    return self.reply(200,json.dumps(public,ensure_ascii=False,allow_nan=False).encode())
                 if path=='/healthz': return self.reply(200,b'{"ok":true}')
                 # Exact static paths only; world data/config are never served.
                 if path in ('/','/index.html'): file=ROOT/'static/index.html'
-                elif path in ('/app.js','/styles.css','/world.svg','/favicon.svg'):
+                elif path in ('/app.js','/vault-fx.js','/styles.css','/world.svg','/favicon.svg'):
                     file=ROOT/'static'/path[1:]
                 elif re.fullmatch(r'/fonts/[a-zA-Z0-9_-]+\.woff2',path): file=ROOT/'static'/path[1:]
                 elif re.fullmatch(r'/avatars/[0-9a-f-]{36}\.png',path): file=state_dir/path[1:]
@@ -466,7 +493,7 @@ def main():
     feed=LiveFeed(a.server_dir/'logs/latest.log')
     feed.get()
     chat=ChatGateway(a.server_dir,feed,a.chat_limit,a.chat_window,a.chat_global_limit,a.chat_max_length,not a.disable_webchat)
-    server=ThreadingHTTPServer((a.bind,a.port),handler(snapshot,a.state_dir,feed,Positions(a.server_dir),chat))
+    server=ThreadingHTTPServer((a.bind,a.port),handler(snapshot,a.state_dir,feed,Positions(a.server_dir),chat,VaultModel(a.server_dir)))
     LOG.info('Minecraft-Statistiken: http://%s:%s',a.bind,a.port)
     server.serve_forever()
 
