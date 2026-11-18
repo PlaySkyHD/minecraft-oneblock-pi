@@ -176,13 +176,13 @@ COUNT_STATS = (
     "interact_with_smithing_table", "interact_with_brewingstand", "interact_with_stonecutter",
 )
 TOTAL_STATS = {
-    "minecraft:mined": ("blocks_mined", "Abgebaute Bloecke"),
+    "minecraft:mined": ("blocks_mined", "Abgebaute Blöcke"),
     "minecraft:crafted": ("items_crafted", "Hergestellte Items"),
-    "minecraft:used": ("item_uses", "Item-Benutzungen, keine exakte Zahl platzierter Bloecke"),
-    "minecraft:broken": ("items_broken", "Zerbrochene Werkzeuge und Ausruestung"),
+    "minecraft:used": ("item_uses", "Item-Benutzungen, keine exakte Zahl platzierter Blöcke"),
+    "minecraft:broken": ("items_broken", "Zerbrochene Werkzeuge und Ausrüstung"),
     "minecraft:picked_up": ("items_picked_up", "Aufgehobene Items, inklusive wiederholtem Aufheben"),
     "minecraft:dropped": ("items_dropped", "Fallengelassene Items"),
-    "minecraft:killed": ("entities_killed", "Getoetete Wesen nach Typ aufsummiert"),
+    "minecraft:killed": ("entities_killed", "Getötete Wesen nach Typ aufsummiert"),
     "minecraft:killed_by": ("deaths_to_entities", "Tode durch Wesen nach Typ aufsummiert"),
 }
 
@@ -249,7 +249,7 @@ class PlayerStatistics:
             m.add("minecraft_player_statistics_read_success", fresh,
                   "1 wenn die letzte Spielerdatei erfolgreich gelesen wurde", **labels)
             m.add("minecraft_player_statistics_saved_timestamp_seconds", modified,
-                  "Aenderungszeit der gespeicherten Statistikdatei, keine letzte Anmeldung", **labels)
+                  "Änderungszeit der gespeicherten Statistikdatei, keine letzte Anmeldung", **labels)
             self.emit(m, stats, labels)
             self.advancements(m, uuid, labels)
         existing = {filename[:-5] for filename in files}
@@ -271,7 +271,7 @@ class PlayerStatistics:
             stat = key.removeprefix("minecraft:")
             if stat.endswith("_one_cm") and key.startswith("minecraft:"):
                 m.add("minecraft_player_distance_meters_total", value / 100,
-                      "Zurueckgelegte Strecke je Bewegungsart in Metern", "counter",
+                      "Zurückgelegte Strecke je Bewegungsart in Metern", "counter",
                       mode=stat.removesuffix("_one_cm"), **labels)
             elif stat in TIME_STATS and key.startswith("minecraft:"):
                 if stat.startswith("time_since_"):
@@ -292,7 +292,7 @@ class PlayerStatistics:
         foot = sum(custom.get("minecraft:" + mode + "_one_cm", 0)
                    for mode in ("walk", "sprint", "crouch")) / 100
         m.add("minecraft_player_on_foot_meters_total", foot,
-              "Zu Fuss: Gehen plus Sprinten plus Schleichen, ohne Schwimmen oder Fahrzeuge", "counter", **labels)
+              "Zu Fuß: Gehen plus Sprinten plus Schleichen, ohne Schwimmen oder Fahrzeuge", "counter", **labels)
         for category, (suffix, help_text) in TOTAL_STATS.items():
             values = stats.get(category, {})
             m.add("minecraft_player_" + suffix + "_total", sum(values.values()), help_text, "counter", **labels)
