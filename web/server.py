@@ -440,7 +440,7 @@ def handler(snapshot,state_dir,feed=None,positions=None,chat=None,vault_model=No
                 if path=='/healthz': return self.reply(200,b'{"ok":true}')
                 # Exact static paths only; world data/config are never served.
                 if path in ('/','/index.html'): file=ROOT/'static/index.html'
-                elif path in ('/app.js','/styles.css','/world.svg','/favicon.svg'):
+                elif path in ('/app.js','/vault-fx.js','/styles.css','/world.svg','/favicon.svg'):
                     file=ROOT/'static'/path[1:]
                 elif re.fullmatch(r'/fonts/[a-zA-Z0-9_-]+\.woff2',path): file=ROOT/'static'/path[1:]
                 elif re.fullmatch(r'/avatars/[0-9a-f-]{36}\.png',path): file=state_dir/path[1:]

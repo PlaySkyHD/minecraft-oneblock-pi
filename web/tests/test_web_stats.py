@@ -198,7 +198,7 @@ class HTTPTests(unittest.TestCase):
             self.assertEqual(exc.exception.code,404)
 
     def test_page_and_local_assets_are_available(self):
-        for path in ['/','/app.js','/styles.css','/world.svg','/favicon.svg','/healthz']:
+        for path in ['/','/app.js','/vault-fx.js','/styles.css','/world.svg','/favicon.svg','/healthz']:
             with self.subTest(path=path),urlopen(self.url+path) as r:
                 self.assertEqual(r.status,200)
                 self.assertGreater(len(r.read()),0)
