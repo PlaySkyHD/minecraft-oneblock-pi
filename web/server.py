@@ -16,7 +16,6 @@ import re
 import sqlite3
 import threading
 import time
-import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 from urllib.request import urlopen
@@ -25,6 +24,9 @@ ROOT = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location('minecraft_exporter', ROOT.parent/'exporter/oneblock_exporter.py')
 exporter = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(exporter)
+vault_spec = importlib.util.spec_from_file_location('minecraft_vault', ROOT/'vault.py')
+vault = importlib.util.module_from_spec(vault_spec)
+vault_spec.loader.exec_module(vault)
 LOG = logging.getLogger('minecraft-stats')
 
 
@@ -89,32 +91,27 @@ SUMMARY_ACTIONS = {'deaths':'deaths','mobKills':'mob_kills','playerKills':'playe
                    'trades':'traded_with_villager','slept':'sleep_in_bed','chests':'open_chest'}
 
 
-def vault_core_chance(server_dir):
-    """Read the supported Heavy Core override; hide simulation if unavailable."""
-    path = server_dir/'world/datapacks/heavy-core-1-percent.zip'
-    name = 'data/minecraft/loot_table/chests/trial_chambers/reward_ominous_unique.json'
-    try:
-        with zipfile.ZipFile(path) as archive:
-            table = json.loads(archive.read(name))
-        entries = table['pools'][0]['entries']
-        weights = {e['name']: e.get('weight', 1) for e in entries}
-        expected = {'minecraft:enchanted_golden_apple':3, 'minecraft:flow_armor_trim_smithing_template':3,
-                    'minecraft:flow_banner_pattern':2, 'minecraft:music_disc_creator':1, 'minecraft:heavy_core':1}
-        if len(entries) != 5 or weights != expected: return None
-        core = next(e for e in entries if e['name'] == 'minecraft:heavy_core')
-        funcs = core['functions']
-        if len(funcs) != 1 or funcs[0]['function'] != 'minecraft:set_count' or funcs[0]['count'] != 0: return None
-        conditions = funcs[0]['conditions']
-        if len(conditions) != 1 or conditions[0]['condition'] != 'minecraft:random_chance': return None
-        chance = float(conditions[0]['chance'])
-        return .75 * .1 * (1-chance) if 0 <= chance <= 1 else None
-    except (OSError, KeyError, TypeError, ValueError, StopIteration, zipfile.BadZipFile):
-        return None
+class VaultModel:
+    """Loot model of the ominous vault, rebuilt at most once a minute."""
+    def __init__(self, server_dir):
+        self.server_dir = server_dir
+        self.lock = threading.Lock()
+        self.cached = None
+        self.cached_at = 0
+
+    def get(self):
+        with self.lock:
+            now = time.monotonic()
+            if self.cached is None or now-self.cached_at >= 60:
+                self.cached = vault.build(self.server_dir)
+                self.cached_at = now
+                if not self.cached['available']:
+                    LOG.warning('Vault model unavailable: %s', self.cached['reason'])
+            return self.cached
 
 
 class Snapshot:
     def __init__(self, server_dir, state_dir, exporter_url):
-        self.server_dir = server_dir
         self.reader = exporter.PlayerStatistics(str(server_dir))
         self.history = History(state_dir/'history.sqlite3')
         self.exporter_url = exporter_url
@@ -179,7 +176,7 @@ class Snapshot:
             errors = next((value for name,value,l in samples.rows if name=='minecraft_statistics_read_errors'),0)
             self.cached = {'generatedAt':now,'server':{'name':'Create Survival','minecraft':'1.21.1','create':'6.0.10',
                 'online':live['up'],'statusAvailable':live['available'],'tps':live['tps'],'onlineCount':live['onlineCount']},
-                'players':players,'history':history,'readErrors':errors,'vaultCoreChance':vault_core_chance(self.server_dir),
+                'players':players,'history':history,'readErrors':errors,
                 'note':'Statistiken werden beim regulären Speichern durch Minecraft aktualisiert. Spielzeit enthält AFK-Zeit.'}
             self.cached_at = now
             return self.cached
@@ -379,7 +376,7 @@ class ChatGateway:
         finally: connection.close()
 
 
-def handler(snapshot,state_dir,feed=None,positions=None,chat=None):
+def handler(snapshot,state_dir,feed=None,positions=None,chat=None,vault_model=None):
     class Handler(BaseHTTPRequestHandler):
         def reply(self,code,data,content_type='application/json; charset=utf-8',cache='no-store',headers=None):
             self.send_response(code)
@@ -435,6 +432,11 @@ def handler(snapshot,state_dir,feed=None,positions=None,chat=None):
                     return self.reply(200,json.dumps(feed.get(),ensure_ascii=False,allow_nan=False).encode())
                 if path=='/api/positions' and positions is not None:
                     return self.reply(200,json.dumps(positions.get(),ensure_ascii=False,allow_nan=False).encode())
+                if path=='/api/vault' and vault_model is not None:
+                    data=vault_model.get()
+                    public=({k:data[k] for k in ('available','model','items','coreChance','overrides')} if data['available']
+                            else {'available':False})
+                    return self.reply(200,json.dumps(public,ensure_ascii=False,allow_nan=False).encode())
                 if path=='/healthz': return self.reply(200,b'{"ok":true}')
                 # Exact static paths only; world data/config are never served.
                 if path in ('/','/index.html'): file=ROOT/'static/index.html'
@@ -491,7 +493,7 @@ def main():
     feed=LiveFeed(a.server_dir/'logs/latest.log')
     feed.get()
     chat=ChatGateway(a.server_dir,feed,a.chat_limit,a.chat_window,a.chat_global_limit,a.chat_max_length,not a.disable_webchat)
-    server=ThreadingHTTPServer((a.bind,a.port),handler(snapshot,a.state_dir,feed,Positions(a.server_dir),chat))
+    server=ThreadingHTTPServer((a.bind,a.port),handler(snapshot,a.state_dir,feed,Positions(a.server_dir),chat,VaultModel(a.server_dir)))
     LOG.info('Minecraft-Statistiken: http://%s:%s',a.bind,a.port)
     server.serve_forever()
 
